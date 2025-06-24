@@ -4,9 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uvicorn
 
+
 from .config import settings
 from .models.database import create_tables, get_db
-from .api import developers, assignments, tasks
+from .api import developers, assignments, tasks, learning
 from .core.developer_modeling.expertise_tracker import ExpertiseTracker
 
 # Create FastAPI app
@@ -52,6 +53,8 @@ async def startup_event():
 app.include_router(developers.router, prefix="/api/v1", tags=["developers"])
 app.include_router(assignments.router, prefix="/api/v1", tags=["assignments"])
 app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
+app.include_router(learning.router, prefix="/api/v1", tags=["learning"])
+
 
 @app.get("/")
 async def root():
@@ -65,32 +68,36 @@ async def root():
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
-   """Detailed health check with database connectivity."""
-   try:
-       # Test database connection
-       db.execute("SELECT 1")
-       
-       return {
-           "status": "healthy",
-           "database": "connected",
-           "components": {
-               "skill_extraction": "ready",
-               "task_analysis": "ready",
-               "assignment_engine": "ready",
-               "learning_automata": "ready"
-           },
-           "phase_3_features": {
-               "multi_objective_optimization": "active",
-               "learning_algorithms": "active",
-               "real_time_assignment": "active",
-               "performance_analytics": "active"
-           }
-       }
-   except Exception as e:
-       return {
-           "status": "unhealthy",
-           "error": str(e)
-       }
+    """Detailed health check with database connectivity."""
+    try:
+        # Test database connection
+        db.execute("SELECT 1")
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "components": {
+                "skill_extraction": "ready",
+                "task_analysis": "ready", 
+                "assignment_engine": "ready",
+                "learning_automata": "ready",
+                "feedback_processor": "ready",     # NEW
+                "model_updater": "ready",          # NEW
+                "system_analytics": "ready"       # NEW
+            },
+            "phase_4_features": {                  # NEW
+                "continuous_learning": "active",
+                "model_optimization": "active",
+                "performance_monitoring": "active",
+                "predictive_analytics": "active",
+                "ab_testing": "active"
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
    uvicorn.run(

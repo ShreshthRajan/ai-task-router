@@ -523,3 +523,159 @@ class AssignmentNotification(BaseModel):
     message: str
     priority: str = Field(default="medium", pattern="^(low|medium|high|urgent)$")
     action_required: bool = False
+
+class AssignmentOutcomeCreate(BaseModel):
+    """Create assignment outcome record."""
+    assignment_id: int
+    task_completion_quality: float = Field(..., ge=0.0, le=1.0)
+    developer_satisfaction: float = Field(..., ge=0.0, le=1.0)
+    learning_achieved: float = Field(..., ge=0.0, le=1.0)
+    collaboration_effectiveness: float = Field(..., ge=0.0, le=1.0)
+    time_estimation_accuracy: float = Field(..., ge=0.0, le=1.0)
+    performance_metrics: Dict[str, float] = {}
+    skill_improvements: List[str] = []
+    challenges_faced: List[str] = []
+    success_factors: List[str] = []
+
+class AssignmentOutcome(AssignmentOutcomeCreate):
+    """Assignment outcome response."""
+    id: int
+    prediction_accuracy: Dict[str, float] = {}
+    unexpected_learnings: List[str] = []
+    improvement_suggestions: List[str] = []
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ModelPerformanceMetrics(BaseModel):
+    """Model performance tracking."""
+    model_name: str
+    version: str
+    accuracy_score: float = Field(..., ge=0.0, le=1.0)
+    precision_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    recall_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    f1_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    mse_score: Optional[float] = None
+    training_data_size: int
+    prediction_count: int = 0
+    correct_predictions: int = 0
+    average_confidence: float = Field(..., ge=0.0, le=1.0)
+
+class SystemHealthMetrics(BaseModel):
+    """System-wide health and performance metrics."""
+    avg_assignment_quality: float = Field(..., ge=0.0, le=1.0)
+    avg_developer_satisfaction: float = Field(..., ge=0.0, le=1.0)
+    avg_skill_development_rate: float = Field(..., ge=0.0, le=1.0)
+    assignment_success_rate: float = Field(..., ge=0.0, le=1.0)
+    team_productivity_score: float = Field(..., ge=0.0, le=1.0)
+    learning_accuracy_trend: float
+    prediction_confidence_avg: float = Field(..., ge=0.0, le=1.0)
+    total_assignments: int
+    completed_assignments: int
+
+class LearningExperimentCreate(BaseModel):
+    """Create learning experiment."""
+    experiment_name: str
+    experiment_type: str = Field(..., pattern="^(ab_test|parameter_optimization|model_comparison)$")
+    control_config: Dict[str, Any]
+    experimental_config: Dict[str, Any]
+    success_metrics: List[str]
+    sample_size: int = Field(..., gt=0)
+
+class LearningExperiment(LearningExperimentCreate):
+    """Learning experiment response."""
+    id: int
+    status: str = "active"
+    control_results: Dict[str, float] = {}
+    experimental_results: Dict[str, float] = {}
+    statistical_significance: Optional[float] = None
+    confidence_level: Optional[float] = None
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class DeveloperPreferenceProfile(BaseModel):
+    """Developer preference profile."""
+    developer_id: int
+    preferred_complexity_range: Tuple[float, float]
+    collaboration_preference: float = Field(..., ge=0.0, le=1.0)
+    learning_appetite: float = Field(..., ge=0.0, le=1.0)
+    optimal_workload_hours: float = Field(..., gt=0)
+    workload_tolerance: float = Field(..., ge=0.0, le=1.0)
+    preferred_learning_style: str = Field(..., pattern="^(gradual|immersive|mixed)$")
+    preference_confidence: float = Field(..., ge=0.0, le=1.0)
+    sample_size: int
+
+class SkillImportanceAnalysis(BaseModel):
+    """Skill importance analysis results."""
+    skill_name: str
+    task_type: str
+    complexity_range: str
+    domain: str
+    importance_factor: float = Field(..., ge=0.0, le=2.0)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    success_rate_with_skill: float = Field(..., ge=0.0, le=1.0)
+    success_rate_without_skill: float = Field(..., ge=0.0, le=1.0)
+    sample_size: int
+
+class LearningSystemAnalytics(BaseModel):
+    """Comprehensive learning system analytics."""
+    total_outcomes_processed: int
+    active_experiments: int
+    model_performance_trends: Dict[str, List[float]]
+    developer_preferences_learned: int
+    skill_importance_factors: int
+    system_improvement_rate: float
+    prediction_accuracy_improvement: float
+    recent_learnings: List[str]
+
+class FeedbackProcessingResult(BaseModel):
+    """Result from processing assignment feedback."""
+    outcomes_processed: int
+    models_updated: int
+    preferences_learned: int
+    skill_factors_updated: int
+    system_improvements: List[str]
+    processing_time_ms: float
+
+class ModelUpdateResult(BaseModel):
+    """Result from model update operation."""
+    model_name: str
+    previous_version: str
+    new_version: str
+    performance_improvement: float
+    update_type: str = Field(..., pattern="^(retrain|parameter_tune|architecture_change)$")
+    validation_results: Dict[str, float]
+    rollback_available: bool
+
+class PredictiveInsights(BaseModel):
+    """Predictive insights for team and individual performance."""
+    developer_id: Optional[int] = None
+    predicted_performance_trend: str = Field(..., pattern="^(improving|stable|declining)$")
+    skill_development_forecast: Dict[str, float]
+    optimal_assignment_characteristics: Dict[str, Any]
+    risk_factors: List[str]
+    recommendations: List[str]
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+class SystemOptimizationSuggestion(BaseModel):
+    """System optimization suggestions."""
+    optimization_type: str = Field(..., pattern="^(algorithm_tuning|workflow_improvement|resource_allocation)$")
+    current_performance: float
+    expected_improvement: float
+    implementation_effort: str = Field(..., pattern="^(low|medium|high)$")
+    impact_areas: List[str]
+    description: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+class LearningProgress(BaseModel):
+    """Learning progress tracking."""
+    learning_component: str
+    current_accuracy: float = Field(..., ge=0.0, le=1.0)
+    accuracy_trend: List[float]
+    data_points_processed: int
+    last_significant_improvement: Optional[datetime] = None
+    learning_rate: float = Field(..., ge=0.0, le=1.0)
+    convergence_status: str = Field(..., pattern="^(converging|converged|diverging|unstable)$")

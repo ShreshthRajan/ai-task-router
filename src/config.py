@@ -46,6 +46,28 @@ class Settings(BaseSettings):
         "testing", "mobile", "desktop", "web", "cloud", "infrastructure"
     ]
     
+    # Learning System Configuration
+    LEARNING_RATE: float = 0.1
+    MIN_SAMPLE_SIZE_FOR_LEARNING: int = 5
+    CONFIDENCE_THRESHOLD: float = 0.7
+    MODEL_UPDATE_THRESHOLD: float = 0.05
+
+    # Performance Monitoring
+    ALERT_ASSIGNMENT_SUCCESS_RATE: float = 0.7
+    ALERT_DEVELOPER_SATISFACTION: float = 0.6
+    ALERT_PREDICTION_ACCURACY: float = 0.7
+    ALERT_SYSTEM_PERFORMANCE: float = 0.75
+
+    # A/B Testing
+    DEFAULT_EXPERIMENT_DURATION_DAYS: int = 14
+    MIN_EXPERIMENT_SAMPLE_SIZE: int = 20
+    STATISTICAL_SIGNIFICANCE_THRESHOLD: float = 0.05
+
+    # ROI Calculation
+    DEVELOPER_HOURLY_RATE: float = 75.0
+    ESTIMATED_TIME_SAVED_PER_ASSIGNMENT: float = 2.0
+    BASELINE_MANUAL_SUCCESS_RATE: float = 0.6
+
     class Config:
         env_file = ".env"
 

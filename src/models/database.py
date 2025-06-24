@@ -237,3 +237,190 @@ def get_db():
         yield db
     finally:
         db.close()
+
+class AssignmentOutcome(Base):
+    """Detailed outcome tracking for completed assignments."""
+    __tablename__ = "assignment_outcomes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    assignment_id = Column(Integer, ForeignKey("task_assignments.id"), unique=True)
+    
+    # Performance metrics
+    task_completion_quality = Column(Float)  # Code quality, requirements met
+    developer_satisfaction = Column(Float)  # Developer feedback on assignment fit
+    learning_achieved = Column(Float)  # Actual skill development
+    collaboration_effectiveness = Column(Float)  # Team interaction quality
+    time_estimation_accuracy = Column(Float)  # Predicted vs actual time
+    
+    # Detailed outcome data
+    performance_metrics = Column(JSON)  # Detailed performance breakdown
+    skill_improvements = Column(JSON)  # Specific skills developed
+    challenges_faced = Column(JSON)  # Difficulties encountered
+    success_factors = Column(JSON)  # What made the assignment successful
+    
+    # Learning insights
+    prediction_accuracy = Column(JSON)  # How accurate were our predictions
+    unexpected_learnings = Column(JSON)  # Unexpected skill developments
+    improvement_suggestions = Column(JSON)  # Suggestions for future assignments
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    assignment = relationship("TaskAssignment", backref="outcome")
+
+class ModelPerformance(Base):
+    """Track performance of ML models over time."""
+    __tablename__ = "model_performance"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String, index=True)  # e.g., "complexity_predictor", "skill_extractor"
+    version = Column(String)
+    
+    # Performance metrics
+    accuracy_score = Column(Float)
+    precision_score = Column(Float)
+    recall_score = Column(Float)
+    f1_score = Column(Float)
+    mse_score = Column(Float)  # For regression tasks
+    
+    # Model details
+    training_data_size = Column(Integer)
+    validation_data_size = Column(Integer)
+    feature_count = Column(Integer)
+    hyperparameters = Column(JSON)
+    
+    # Performance tracking
+    prediction_count = Column(Integer, default=0)
+    correct_predictions = Column(Integer, default=0)
+    average_confidence = Column(Float)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SystemMetrics(Base):
+    """System-wide performance and health metrics."""
+    __tablename__ = "system_metrics"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Performance metrics
+    avg_assignment_quality = Column(Float)
+    avg_developer_satisfaction = Column(Float)
+    avg_skill_development_rate = Column(Float)
+    avg_collaboration_effectiveness = Column(Float)
+    
+    # System health
+    total_assignments = Column(Integer)
+    completed_assignments = Column(Integer)
+    successful_assignments = Column(Integer)
+    assignment_success_rate = Column(Float)
+    
+    # Learning system metrics
+    active_learning_models = Column(Integer)
+    learning_accuracy_trend = Column(Float)
+    prediction_confidence_avg = Column(Float)
+    
+    # Productivity metrics
+    team_productivity_score = Column(Float)
+    task_completion_velocity = Column(Float)
+    workload_balance_score = Column(Float)
+    
+    # Time period
+    metric_period = Column(String)  # daily, weekly, monthly
+    period_start = Column(DateTime)
+    period_end = Column(DateTime)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class LearningExperiment(Base):
+    """Track A/B testing and experimental configurations."""
+    __tablename__ = "learning_experiments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    experiment_name = Column(String, unique=True, index=True)
+    
+    # Experiment configuration
+    experiment_type = Column(String)  # ab_test, parameter_optimization, model_comparison
+    status = Column(String, default="active")  # active, completed, paused, cancelled
+    
+    # Configuration details
+    control_config = Column(JSON)  # Baseline configuration
+    experimental_config = Column(JSON)  # New configuration being tested
+    success_metrics = Column(JSON)  # Metrics to measure success
+    
+    # Results
+    control_results = Column(JSON)
+    experimental_results = Column(JSON)
+    statistical_significance = Column(Float)
+    confidence_level = Column(Float)
+    
+    # Experiment timeline
+    start_date = Column(DateTime, default=datetime.utcnow)
+    end_date = Column(DateTime)
+    sample_size = Column(Integer)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class DeveloperPreference(Base):
+    """Learned preferences for individual developers."""
+    __tablename__ = "developer_preferences"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    developer_id = Column(Integer, ForeignKey("developers.id"), unique=True)
+    
+    # Complexity preferences (learned from assignment outcomes)
+    preferred_complexity_min = Column(Float, default=0.3)
+    preferred_complexity_max = Column(Float, default=0.8)
+    complexity_comfort_zone = Column(Float, default=0.6)
+    
+    # Collaboration preferences
+    prefers_solo_work = Column(Float, default=0.5)  # 0 = team work, 1 = solo work
+    optimal_team_size = Column(Float, default=3.0)
+    mentoring_preference = Column(Float, default=0.5)  # 0 = learn, 1 = teach
+    
+    # Learning preferences
+    learning_appetite = Column(Float, default=0.7)  # Desire for challenging tasks
+    preferred_learning_style = Column(String, default="gradual")  # gradual, immersive, mixed
+    
+    # Workload preferences
+    optimal_workload_hours = Column(Float, default=40.0)
+    workload_tolerance = Column(Float, default=0.2)  # How much variance they can handle
+    
+    # Performance patterns (learned)
+    peak_performance_hours = Column(JSON)  # Hours when developer performs best
+    task_switching_penalty = Column(Float, default=0.1)  # Performance impact of context switching
+    
+    # Confidence and accuracy
+    preference_confidence = Column(Float, default=0.5)  # How confident we are in these preferences
+    last_updated = Column(DateTime, default=datetime.utcnow)
+    sample_size = Column(Integer, default=0)  # Number of assignments used to learn preferences
+    
+    developer = relationship("Developer", backref="preferences")
+
+class SkillImportanceFactor(Base):
+    """Learned importance factors for different skills in various contexts."""
+    __tablename__ = "skill_importance_factors"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Context
+    task_type = Column(String, index=True)  # e.g., "bug_fix", "feature_development", "refactoring"
+    complexity_range = Column(String)  # low, medium, high
+    domain = Column(String)  # frontend, backend, ml, etc.
+    
+    # Skill importance (learned from outcomes)
+    skill_name = Column(String, index=True)
+    importance_factor = Column(Float, default=1.0)  # How important this skill is in this context
+    confidence = Column(Float, default=0.5)  # Confidence in this importance factor
+    
+    # Learning data
+    successful_assignments = Column(Integer, default=0)
+    total_assignments = Column(Integer, default=0)
+    avg_performance_with_skill = Column(Float)
+    avg_performance_without_skill = Column(Float)
+    
+    # Temporal tracking
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_learning_update = Column(DateTime, default=datetime.utcnow)
