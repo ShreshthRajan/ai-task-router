@@ -2,6 +2,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Dict, List, Optional
 from datetime import datetime
+from enum import Enum
 
 # Developer Schemas (existing)
 class DeveloperBase(BaseModel):
@@ -350,3 +351,161 @@ class SystemHealthMetrics(BaseModel):
    avg_response_time_ms: float
    error_rate_last_hour: float
    timestamp: datetime = datetime.utcnow()
+
+# Assignment Optimization Schemas
+class OptimizationObjective(str, Enum):
+    PRODUCTIVITY = "productivity"
+    SKILL_DEVELOPMENT = "skill_development"
+    WORKLOAD_BALANCE = "workload_balance"
+    COLLABORATION = "collaboration"
+    BUSINESS_IMPACT = "business_impact"
+
+class OptimizationConstraint(BaseModel):
+    """Optimization constraint specification."""
+    constraint_type: str = Field(..., regex="^(max_workload|skill_requirement|availability|deadline)$")
+    value: float
+    applies_to: Optional[List[int]] = None  # Developer or task IDs
+
+class OptimizationRequest(BaseModel):
+    """Request for assignment optimization."""
+    task_ids: List[int] = Field(..., min_items=1)
+    developer_ids: List[int] = Field(..., min_items=1)
+    objectives: List[OptimizationObjective] = [
+        OptimizationObjective.PRODUCTIVITY,
+        OptimizationObjective.SKILL_DEVELOPMENT,
+        OptimizationObjective.WORKLOAD_BALANCE
+    ]
+    constraints: List[OptimizationConstraint] = []
+    max_assignments_per_developer: int = Field(default=3, ge=1, le=10)
+
+class AssignmentSuggestion(BaseModel):
+    """Individual assignment suggestion with detailed scoring."""
+    task_id: int
+    developer_id: int
+    overall_score: float = Field(..., ge=0.0, le=1.0)
+    skill_match_score: float = Field(..., ge=0.0, le=1.0)
+    complexity_fit_score: float = Field(..., ge=0.0, le=1.0)
+    learning_potential_score: float = Field(..., ge=0.0, le=1.0)
+    workload_impact_score: float = Field(..., ge=0.0, le=1.0)
+    collaboration_score: float = Field(..., ge=0.0, le=1.0)
+    business_impact_score: float = Field(..., ge=0.0, le=1.0)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    reasoning: str
+    risk_factors: List[str] = []
+    predicted_performance: Optional[float] = None
+    prediction_confidence: Optional[float] = None
+
+class OptimizationResult(BaseModel):
+    """Result from assignment optimization."""
+    assignments: List[Assignment]
+    objective_scores: Dict[str, float]
+    alternative_solutions: List[Dict[str, Any]] = []
+    optimization_metadata: Dict[str, Any] = {}
+    optimization_time_ms: float
+    total_score: float = 0.0
+    confidence_level: str = Field(default="medium", regex="^(low|medium|high)$")
+
+# Learning System Schemas
+class LearningFeedback(BaseModel):
+    """Feedback for learning system."""
+    assignment_id: int
+    outcome_metrics: Dict[str, float]
+    qualitative_feedback: Optional[str] = None
+    improvement_suggestions: List[str] = []
+
+class DeveloperPreferenceModel(BaseModel):
+    """Developer preference model for learning system."""
+    developer_id: int
+    preferred_complexity_range: Tuple[float, float]
+    collaboration_preference: float = Field(..., ge=0.0, le=1.0)
+    learning_preference: float = Field(..., ge=0.0, le=1.0)
+    workload_tolerance: float = Field(..., ge=0.0, le=1.0)
+    performance_history: List[Dict[str, Any]] = []
+
+class LearningAnalytics(BaseModel):
+    """Analytics from the learning system."""
+    total_assignments_learned: int
+    current_learning_rate: float
+    prediction_accuracy: float = Field(..., ge=0.0, le=1.0)
+    developers_modeled: int
+    skills_tracked: int
+    top_important_skills: List[Tuple[str, float]] = []
+    recent_performance_trend: str = Field(..., regex="^(improving|stable|declining|unknown)$")
+
+# Team Analytics Schemas
+class TeamPerformanceMetrics(BaseModel):
+    """Team-level performance metrics."""
+    team_size: int
+    avg_assignment_score: float = Field(..., ge=0.0, le=1.0)
+    skill_development_rate: float = Field(..., ge=0.0, le=1.0)
+    collaboration_effectiveness: float = Field(..., ge=0.0, le=1.0)
+    workload_balance_score: float = Field(..., ge=0.0, le=1.0)
+    completion_rate: float = Field(..., ge=0.0, le=1.0)
+    average_delivery_time_hours: Optional[float] = None
+
+class AssignmentDistribution(BaseModel):
+    """Assignment distribution across team members."""
+    developer_assignments: Dict[str, int]
+    balance_score: float = Field(..., ge=0.0, le=1.0)
+    overloaded_developers: List[int] = []
+    underutilized_developers: List[int] = []
+
+class TeamSkillGapAnalysis(BaseModel):
+    """Team skill gap analysis."""
+    required_skills: Dict[str, float]
+    available_skills: Dict[str, float]
+    skill_gaps: Dict[str, float]
+    skill_redundancies: Dict[str, int]
+    recommendations: List[str] = []
+
+# Advanced Analytics Schemas
+class AssignmentOutcomeAnalysis(BaseModel):
+    """Detailed analysis of assignment outcomes."""
+    assignment_id: int
+    predicted_vs_actual_performance: Dict[str, float]
+    time_estimation_accuracy: float
+    skill_development_achieved: float = Field(..., ge=0.0, le=1.0)
+    learning_impact_areas: List[str] = []
+    success_factors: List[str] = []
+    improvement_areas: List[str] = []
+
+class PredictiveInsights(BaseModel):
+    """Predictive insights for future assignments."""
+    developer_id: int
+    predicted_performance_trends: Dict[str, float]
+    recommended_growth_areas: List[str] = []
+    optimal_task_characteristics: Dict[str, Any]
+    risk_indicators: List[str] = []
+    confidence_in_predictions: float = Field(..., ge=0.0, le=1.0)
+
+# Batch Operation Schemas
+class BatchAssignmentRequest(BaseModel):
+    """Request for batch assignment operations."""
+    assignments: List[AssignmentCreate]
+    optimization_mode: bool = True
+    conflict_resolution: str = Field(default="optimize", regex="^(optimize|reject|override)$")
+
+class BatchAssignmentResponse(BaseModel):
+    """Response from batch assignment operations."""
+    successful_assignments: List[Assignment]
+    failed_assignments: List[Dict[str, Any]]
+    conflicts_resolved: int
+    optimization_applied: bool
+    processing_time_ms: float
+
+# Real-time Update Schemas  
+class AssignmentUpdate(BaseModel):
+    """Real-time assignment update."""
+    assignment_id: int
+    update_type: str = Field(..., regex="^(status_change|progress_update|completion|feedback)$")
+    update_data: Dict[str, Any]
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+class AssignmentNotification(BaseModel):
+    """Assignment notification for real-time updates."""
+    notification_type: str = Field(..., regex="^(new_assignment|assignment_update|deadline_alert|performance_alert)$")
+    assignment_id: int
+    developer_id: int
+    message: str
+    priority: str = Field(default="medium", regex="^(low|medium|high|urgent)$")
+    action_required: bool = False

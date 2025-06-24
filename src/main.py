@@ -1,4 +1,3 @@
-# src/main.py
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -55,39 +54,47 @@ app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
 
 @app.get("/")
 async def root():
-    """Health check endpoint."""
-    return {
-        "message": "AI Engineering Task Router",
-        "status": "running",
-        "version": "1.0.0"
-    }
+   """Health check endpoint."""
+   return {
+       "message": "AI Engineering Task Router",
+       "status": "running",
+       "version": "1.0.0",
+       "phase": "3 - Assignment Optimization Engine"
+   }
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
-    """Detailed health check with database connectivity."""
-    try:
-        # Test database connection
-        db.execute("SELECT 1")
-        
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "components": {
-                "skill_extraction": "ready",
-                "task_analysis": "ready",
-                "assignment_engine": "ready"
-            }
-        }
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+   """Detailed health check with database connectivity."""
+   try:
+       # Test database connection
+       db.execute("SELECT 1")
+       
+       return {
+           "status": "healthy",
+           "database": "connected",
+           "components": {
+               "skill_extraction": "ready",
+               "task_analysis": "ready",
+               "assignment_engine": "ready",
+               "learning_automata": "ready"
+           },
+           "phase_3_features": {
+               "multi_objective_optimization": "active",
+               "learning_algorithms": "active",
+               "real_time_assignment": "active",
+               "performance_analytics": "active"
+           }
+       }
+   except Exception as e:
+       return {
+           "status": "unhealthy",
+           "error": str(e)
+       }
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "src.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
-    )
+   uvicorn.run(
+       "src.main:app",
+       host="0.0.0.0",
+       port=8000,
+       reload=settings.DEBUG
+   )
