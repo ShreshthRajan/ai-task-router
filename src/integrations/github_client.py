@@ -1,0 +1,385 @@
+import aiohttp
+import asyncio
+from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+import json
+
+from ..config import settings
+
+class GitHubClient:
+    """Client for fetching developer data from GitHub API."""
+    
+    def __init__(self):
+        self.base_url = "https://api.github.com"
+        self.headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "AI-Task-Router/1.0"
+        }
+        
+        if settings.GITHUB_TOKEN:
+            self.headers["Authorization"] = f"token {settings.GITHUB_TOKEN}"
+    
+    async def get_developer_data(self, username: str, days_back: int = 180) -> Dict:
+        """Fetch comprehensive developer data from GitHub."""
+        
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            # Get basic user info
+            user_info = await self._get_user_info(session, username)
+            
+            # Get repositories
+            repos = await self._get_user_repositories(session, username)
+            
+            # Get commits across repositories
+            commits = await self._get_user_commits(session, username, repos, days_back)
+            
+            # Get pull requests and reviews
+            pr_data = await self._get_pull_request_data(session, username, repos, days_back)
+            
+            # Get issue comments
+            issue_comments = await self._get_issue_comments(session, username, repos, days_back)
+            
+            return {
+                "developer_id": username,
+                "github_username": username,
+                "name": user_info.get("name"),
+                "email": user_info.get("email"),
+                "commits": commits,
+                "pr_reviews": pr_data.get("reviews", []),
+                "pr_descriptions": pr_data.get("descriptions", []),
+                "issue_comments": issue_comments,
+                "discussions": [],  # GitHub Discussions API requires separate implementation
+                "commit_messages": [commit.get("message", "") for commit in commits]
+            }
+    
+    async def _get_user_info(self, session: aiohttp.ClientSession, username: str) -> Dict:
+        """Get basic user information."""
+        
+        try:
+            async with session.get(f"{self.base_url}/users/{username}") as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    print(f"Error fetching user info: {response.status}")
+                    return {}
+        except Exception as e:
+            print(f"Error fetching user info: {e}")
+            return {}
+    
+    async def _get_user_repositories(self, session: aiohttp.ClientSession, 
+                                   username: str, max_repos: int = 50) -> List[Dict]:
+        """Get user's repositories."""
+        
+        try:
+            repos = []
+            page = 1
+            
+            while len(repos) < max_repos:
+                url = f"{self.base_url}/users/{username}/repos"
+                params = {
+                    "per_page": min(100, max_repos - len(repos)),
+                    "page": page,
+                    "sort": "updated",
+                    "direction": "desc"
+                }
+                
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        page_repos = await response.json()
+                        if not page_repos:
+                            break
+                        repos.extend(page_repos)
+                        page += 1
+                    else:
+                        break
+            
+            return repos[:max_repos]
+            
+        except Exception as e:
+            print(f"Error fetching repositories: {e}")
+            return []
+    
+    async def _get_user_commits(self, session: aiohttp.ClientSession,
+                              username: str, repos: List[Dict], 
+                              days_back: int) -> List[Dict]:
+        """Get user's commits across repositories."""
+        
+        since_date = (datetime.utcnow() - timedelta(days=days_back)).isoformat()
+        all_commits = []
+        
+        # Limit to most active repositories to avoid rate limits
+        active_repos = sorted(repos, key=lambda r: r.get("updated_at", ""), reverse=True)[:10]
+        
+        for repo in active_repos:
+            try:
+                repo_commits = await self._get_repo_commits(
+                    session, repo["owner"]["login"], repo["name"], username, since_date
+                )
+                all_commits.extend(repo_commits)
+                
+                # Rate limiting
+                await asyncio.sleep(0.1)
+                
+            except Exception as e:
+                print(f"Error fetching commits for {repo['name']}: {e}")
+                continue
+        
+        return all_commits
+    
+    async def _get_repo_commits(self, session: aiohttp.ClientSession,
+                              owner: str, repo: str, username: str, since: str) -> List[Dict]:
+        """Get commits from a specific repository."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/commits"
+            params = {
+                "author": username,
+                "since": since,
+                "per_page": 100
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    commits = await response.json()
+                    
+                    # Enrich commits with file information
+                    enriched_commits = []
+                    for commit in commits[:20]:  # Limit detailed analysis
+                        detailed_commit = await self._get_commit_details(
+                            session, owner, repo, commit["sha"]
+                        )
+                        if detailed_commit:
+                            enriched_commits.append(detailed_commit)
+                        
+                        await asyncio.sleep(0.05)  # Rate limiting
+                    
+                    return enriched_commits
+                else:
+                    return []
+                    
+        except Exception as e:
+            print(f"Error fetching repo commits: {e}")
+            return []
+    
+    async def _get_commit_details(self, session: aiohttp.ClientSession,
+                                owner: str, repo: str, sha: str) -> Optional[Dict]:
+        """Get detailed commit information including files changed."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/commits/{sha}"
+            
+            async with session.get(url) as response:
+                if response.status == 200:
+                    commit_data = await response.json()
+                    
+                    return {
+                        "hash": sha,
+                        "message": commit_data["commit"]["message"],
+                        "timestamp": commit_data["commit"]["committer"]["date"],
+                        "files": commit_data.get("files", []),
+                        "additions": commit_data["stats"]["additions"],
+                        "deletions": commit_data["stats"]["deletions"]
+                    }
+                else:
+                    return None
+                    
+        except Exception as e:
+            print(f"Error fetching commit details: {e}")
+            return None
+    
+    async def _get_pull_request_data(self, session: aiohttp.ClientSession,
+                                   username: str, repos: List[Dict], 
+                                   days_back: int) -> Dict:
+        """Get pull request reviews and descriptions."""
+        
+        since_date = datetime.utcnow() - timedelta(days=days_back)
+        reviews = []
+        descriptions = []
+        
+        # Focus on most active repos
+        active_repos = repos[:5]
+        
+        for repo in active_repos:
+            try:
+                repo_prs = await self._get_repo_pull_requests(
+                    session, repo["owner"]["login"], repo["name"], since_date
+                )
+                
+                for pr in repo_prs:
+                    # Get PR reviews by this user
+                    pr_reviews = await self._get_pr_reviews(
+                        session, repo["owner"]["login"], repo["name"], pr["number"], username
+                    )
+                    reviews.extend(pr_reviews)
+                    
+                    # Collect PR descriptions if authored by user
+                    if pr["user"]["login"] == username:
+                        descriptions.append({
+                            "description": pr.get("body", ""),
+                            "title": pr.get("title", ""),
+                            "created_at": pr.get("created_at")
+                        })
+                    
+                    await asyncio.sleep(0.1)
+                
+            except Exception as e:
+                print(f"Error fetching PR data for {repo['name']}: {e}")
+                continue
+        
+        return {
+            "reviews": reviews,
+            "descriptions": descriptions
+        }
+    
+    async def _get_repo_pull_requests(self, session: aiohttp.ClientSession,
+                                    owner: str, repo: str, since_date: datetime) -> List[Dict]:
+        """Get pull requests from repository."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/pulls"
+            params = {
+                "state": "all",
+                "sort": "updated",
+                "direction": "desc",
+                "per_page": 50
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    prs = await response.json()
+                    
+                    # Filter by date
+                    recent_prs = []
+                    for pr in prs:
+                        updated_at = datetime.fromisoformat(pr["updated_at"].replace("Z", "+00:00"))
+                        if updated_at >= since_date:
+                            recent_prs.append(pr)
+                        else:
+                            break  # PRs are sorted by updated date
+                    
+                    return recent_prs
+                else:
+                    return []
+                    
+        except Exception as e:
+            print(f"Error fetching pull requests: {e}")
+            return []
+    
+    async def _get_pr_reviews(self, session: aiohttp.ClientSession,
+                            owner: str, repo: str, pr_number: int, username: str) -> List[Dict]:
+        """Get reviews for a specific pull request by user."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{pr_number}/reviews"
+            
+            async with session.get(url) as response:
+                if response.status == 200:
+                    all_reviews = await response.json()
+                    
+                    # Filter reviews by user
+                    user_reviews = [
+                        {
+                            "content": review.get("body", ""),
+                            "state": review.get("state"),
+                            "submitted_at": review.get("submitted_at"),
+                            "pr_number": pr_number
+                        }
+                        for review in all_reviews
+                        if review["user"]["login"] == username and review.get("body")
+                    ]
+                    
+                    return user_reviews
+                else:
+                    return []
+                    
+        except Exception as e:
+            print(f"Error fetching PR reviews: {e}")
+            return []
+    
+    async def _get_issue_comments(self, session: aiohttp.ClientSession,
+                                username: str, repos: List[Dict], 
+                                days_back: int) -> List[Dict]:
+        """Get issue comments by user."""
+        
+        since_date = datetime.utcnow() - timedelta(days=days_back)
+        all_comments = []
+        
+        # Focus on most active repos
+        active_repos = repos[:5]
+        
+        for repo in active_repos:
+            try:
+                # Get issues with comments
+                issues = await self._get_repo_issues(
+                    session, repo["owner"]["login"], repo["name"], since_date
+                )
+                
+                for issue in issues:
+                    comments = await self._get_issue_comments_for_issue(
+                        session, repo["owner"]["login"], repo["name"], 
+                        issue["number"], username, since_date
+                    )
+                    all_comments.extend(comments)
+                    
+                    await asyncio.sleep(0.05)
+                
+            except Exception as e:
+                print(f"Error fetching issue comments for {repo['name']}: {e}")
+                continue
+        
+        return all_comments
+    
+    async def _get_repo_issues(self, session: aiohttp.ClientSession,
+                             owner: str, repo: str, since_date: datetime) -> List[Dict]:
+        """Get issues from repository."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/issues"
+            params = {
+                "state": "all",
+                "sort": "updated",
+                "direction": "desc",
+                "per_page": 30,
+                "since": since_date.isoformat()
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    return []
+                    
+        except Exception as e:
+            print(f"Error fetching issues: {e}")
+            return []
+    
+    async def _get_issue_comments_for_issue(self, session: aiohttp.ClientSession,
+                                          owner: str, repo: str, issue_number: int,
+                                          username: str, since_date: datetime) -> List[Dict]:
+        """Get comments for a specific issue by user."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/issues/{issue_number}/comments"
+            
+            async with session.get(url) as response:
+                if response.status == 200:
+                    all_comments = await response.json()
+                    
+                    # Filter comments by user and date
+                    user_comments = []
+                    for comment in all_comments:
+                        if comment["user"]["login"] == username:
+                            created_at = datetime.fromisoformat(comment["created_at"].replace("Z", "+00:00"))
+                            if created_at >= since_date:
+                                user_comments.append({
+                                    "content": comment.get("body", ""),
+                                    "created_at": comment.get("created_at"),
+                                    "issue_number": issue_number
+                                })
+                    
+                    return user_comments
+                else:
+                    return []
+                    
+        except Exception as e:
+            print(f"Error fetching issue comments: {e}")
+            return []

@@ -6,4 +6,5 @@ __pycache__/
 data/models/*
 !data/models/.gitkeep
 data/embeddings/*
-!data/embeddings/.gitkeep
+!data/embeddings/.gitkeepHer
+venv/
