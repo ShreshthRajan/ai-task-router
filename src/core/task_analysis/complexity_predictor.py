@@ -571,6 +571,18 @@ class ComplexityPredictor:
             if pattern in skill_mapping:
                 required_skills[skill_mapping[pattern]] = 0.6
         
+        # Security skills detection
+        text = f"{features['title']} {features['description']}".lower()
+        if any(word in text for word in ['security', 'auth', 'authentication', 'oauth', 'jwt', 'encryption']):
+            required_skills['security'] = 0.8
+        
+        # Add specific security technologies
+        security_techs = ['jwt', 'oauth', 'encryption', 'bcrypt', 'ssl', 'tls']
+        for tech in features['mentioned_technologies']:
+            if tech.lower() in security_techs:
+                required_skills['security'] = 0.9
+                break
+        
         return required_skills
     
     def _identify_risk_factors(self, features: Dict) -> List[str]:

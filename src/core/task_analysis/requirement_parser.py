@@ -250,22 +250,81 @@ class RequirementParser:
         """Extract acceptance criteria related to a requirement."""
         criteria = []
         
+        # First, extract from existing acceptance criteria patterns
         for pattern in self.acceptance_patterns:
             matches = re.finditer(pattern, full_section, re.IGNORECASE | re.MULTILINE)
             for match in matches:
-                criterion = match.group(1) if match.lastindex else match.group(0)
-                criteria.append(criterion.strip())
+                criterion = match.group(1) if match.lastindex and len(match.groups()) > 0 else match.group(0)
+                # Split on newlines and clean up bullet points
+                lines = criterion.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line and not line.startswith(('acceptance criteria', 'ac:', 'definition of done', 'dod:')):
+                        # Remove bullet points and dashes
+                        clean_line = re.sub(r'^[-*•]\s*', '', line)
+                        if clean_line:
+                            criteria.append(clean_line)
         
-        # Also look for Given-When-Then patterns
-        gherkin_pattern = r'given\s+(.+?)\s+when\s+(.+?)\s+then\s+(.+?)(?:\n|$)'
+        # Look for Given-When-Then patterns - handle both inline and multiline
+        lines = full_section.split('\n')
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            
+            # Check for Given-When-Then starting on this line
+            if line.lower().startswith('given '):
+                given_part = line[6:].strip()  # Remove "Given "
+                when_part = ""
+                then_part = ""
+                
+                # Look for When on next lines
+                j = i + 1
+                while j < len(lines):
+                    next_line = lines[j].strip()
+                    if next_line.lower().startswith('when '):
+                        when_part = next_line[5:].strip()  # Remove "When "
+                        break
+                    elif next_line and not next_line.lower().startswith('given '):
+                        # Continue Given part if no When found yet
+                        given_part += " " + next_line
+                    j += 1
+                
+                # Look for Then after When
+                if when_part:
+                    k = j + 1
+                    while k < len(lines):
+                        next_line = lines[k].strip()
+                        if next_line.lower().startswith('then '):
+                            then_part = next_line[5:].strip()  # Remove "Then "
+                            break
+                        elif next_line and not next_line.lower().startswith(('given ', 'when ')):
+                            # Continue When part if no Then found yet
+                            when_part += " " + next_line
+                        k += 1
+                
+                # If we found all three parts, create the criterion
+                if given_part and when_part and then_part:
+                    gherkin_criterion = f"Given {given_part}, When {when_part}, Then {then_part}"
+                    criteria.append(gherkin_criterion)
+                    i = k  # Skip to after Then
+                else:
+                    i += 1
+            else:
+                i += 1
+        
+        # Also try inline Given-When-Then pattern as fallback
+        gherkin_pattern = r'given\s+(.+?)\s+when\s+(.+?)\s+then\s+(.+?)(?=\n(?:\s*\n|\s*[A-Z])|$)'
         gherkin_matches = re.finditer(gherkin_pattern, full_section, re.IGNORECASE | re.DOTALL)
         
         for match in gherkin_matches:
             given, when, then = match.groups()
-            criteria.append(f"Given {given.strip()}, when {when.strip()}, then {then.strip()}")
+            gherkin_criterion = f"Given {given.strip()}, When {when.strip()}, Then {then.strip()}"
+            # Only add if we haven't already found this pattern
+            if not any(gherkin_criterion in existing for existing in criteria):
+                criteria.append(gherkin_criterion)
         
         return criteria
-    
+            
     def _extract_dependencies(self, text: str) -> List[str]:
         """Extract dependencies from requirement text."""
         dependencies = []
@@ -522,6 +581,11 @@ class RequirementParser:
         # Check scope consistency
         if requirements.overall_scope == 'small' and len(requirements.requirements) > 5:
             validation_results['errors'].append("Scope marked as 'small' but has many requirements")
+        
+        # Check for low confidence requirements
+        low_confidence_reqs = [r for r in requirements.requirements if r.confidence_score < 0.6]
+        if len(low_confidence_reqs) > 0:
+            validation_results['warnings'].append(f"{len(low_confidence_reqs)} requirements have low confidence scores")
         
         # Technical stack consistency
         mentioned_techs = set()
