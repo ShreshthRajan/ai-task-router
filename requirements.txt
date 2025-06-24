@@ -22,6 +22,9 @@ requests==2.31.0
 aiohttp==3.9.1
 pytest==7.4.4
 pytest-asyncio==0.21.1
+# Test dependencies
+httpx==0.25.2
+email-validator==2.1.0
 # NEW Phase 3 dependencies
 scipy==1.11.4
 pymoo==0.6.1

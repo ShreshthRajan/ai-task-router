@@ -9,7 +9,8 @@ from ..models.database import get_db, Task, TaskComplexityAnalysis, TaskRequirem
 from ..models.schemas import (
     Task as TaskSchema, TaskCreate, TaskUpdate, TaskComplexityResult,
     ComplexityAnalysisRequest, ComplexityAnalysisResponse, BatchComplexityRequest, BatchComplexityResponse,
-    TaskRequirementsAnalysis, RequirementValidation, TaskDeveloperMatch, TaskMatchingRequest, TaskMatchingResponse
+    TaskRequirementsAnalysis, RequirementValidation, TaskDeveloperMatch, TaskMatchingRequest, TaskMatchingResponse,
+    TaskRequirement as TaskRequirementSchema
 )
 from ..core.task_analysis.complexity_predictor import ComplexityPredictor
 from ..core.task_analysis.requirement_parser import RequirementParser
@@ -47,8 +48,8 @@ async def create_task(
 async def list_tasks(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    status: Optional[str] = Query(None, regex="^(open|in_progress|completed|closed)$"),
-    priority: Optional[str] = Query(None, regex="^(low|medium|high|critical)$"),
+    status: Optional[str] = Query(None, pattern="^(open|in_progress|completed|closed)$"),
+    priority: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
     repository: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -394,7 +395,7 @@ async def batch_analyze_complexity(
         total_processing_time_ms=total_processing_time
     )
 
-@router.get("/{task_id}/requirements", response_model=List[TaskRequirement])
+@router.get("/{task_id}/requirements", response_model=List[TaskRequirementSchema])
 async def get_task_requirements(
     task_id: int,
     db: Session = Depends(get_db)
@@ -429,7 +430,7 @@ async def get_task_complexity_analysis(
 @router.post("/import-from-github")
 async def import_tasks_from_github(
     repository: str,
-    state: str = Query("open", regex="^(open|closed|all)$"),
+    state: str = Query("open", pattern="^(open|closed|all)$"),
     labels: Optional[List[str]] = Query(None),
     max_issues: int = Query(50, ge=1, le=200),
     analyze_complexity: bool = Query(True),

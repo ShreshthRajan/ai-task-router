@@ -1,6 +1,6 @@
 # src/models/schemas.py
-from pydantic import BaseModel, EmailStr, Field
-from typing import Dict, List, Optional
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from enum import Enum
 
@@ -27,8 +27,7 @@ class DeveloperProfile(DeveloperBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # NEW PHASE 2 SCHEMAS
 
@@ -38,7 +37,7 @@ class TaskBase(BaseModel):
     description: Optional[str] = ""
     repository: Optional[str] = None
     labels: List[str] = []
-    priority: str = Field(default="medium", regex="^(low|medium|high|critical)$")
+    priority: str = Field(default="medium", pattern="^(low|medium|high|critical)$")
 
 class TaskCreate(TaskBase):
     github_issue_id: Optional[int] = None
@@ -47,8 +46,8 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     labels: Optional[List[str]] = None
-    priority: Optional[str] = Field(None, regex="^(low|medium|high|critical)$")
-    status: Optional[str] = Field(None, regex="^(open|in_progress|completed|closed)$")
+    priority: Optional[str] = Field(None, pattern="^(low|medium|high|critical)$")
+    status: Optional[str] = Field(None, pattern="^(open|in_progress|completed|closed)$")
 
 class TaskComplexityResult(BaseModel):
     """Task complexity prediction result."""
@@ -73,13 +72,12 @@ class Task(TaskBase):
     # Complexity analysis (optional)
     complexity_analysis: Optional[TaskComplexityResult] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Requirement Schemas
 class RequirementBase(BaseModel):
-    category: str = Field(..., regex="^(functional|non_functional|technical)$")
-    priority: str = Field(..., regex="^(must|should|could|wont)$")
+    category: str = Field(..., pattern="^(functional|non_functional|technical)$")
+    priority: str = Field(..., pattern="^(must|should|could|wont)$")
     description: str
 
 class RequirementCreate(RequirementBase):
@@ -98,6 +96,24 @@ class Requirement(RequirementBase):
     confidence_score: float
     created_at: datetime
     
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskRequirement(BaseModel):
+    """Task requirement response schema."""
+    id: int
+    task_id: int
+    requirement_id: str
+    category: str = Field(..., pattern="^(functional|non_functional|technical)$")
+    priority: str = Field(..., pattern="^(must|should|could|wont)$")
+    description: str
+    acceptance_criteria: List[str] = []
+    dependencies: List[str] = []
+    technical_constraints: List[str] = []
+    estimated_complexity: float
+    confidence_score: float
+    created_at: datetime
+    
     class Config:
         from_attributes = True
 
@@ -105,7 +121,7 @@ class TaskRequirementsAnalysis(BaseModel):
     """Complete requirements analysis result."""
     task_id: str
     requirements: List[Requirement]
-    overall_scope: str = Field(..., regex="^(small|medium|large|epic)$")
+    overall_scope: str = Field(..., pattern="^(small|medium|large|epic)$")
     technical_stack: List[str] = []
     quality_requirements: Dict[str, str] = {}
     constraints: List[str] = []
@@ -123,7 +139,7 @@ class AssignmentCreate(AssignmentBase):
     pass
 
 class AssignmentUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(suggested|accepted|rejected|completed)$")
+    status: Optional[str] = Field(None, pattern="^(suggested|accepted|rejected|completed)$")
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     actual_hours: Optional[float] = None
@@ -143,8 +159,7 @@ class Assignment(AssignmentBase):
     skill_development_score: Optional[float] = None
     collaboration_effectiveness: Optional[float] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Analysis Request/Response Schemas
 class ComplexityAnalysisRequest(BaseModel):
@@ -160,7 +175,7 @@ class ComplexityAnalysisResponse(BaseModel):
     task_id: Optional[str] = None
     complexity_result: TaskComplexityResult
     requirements_analysis: Optional[TaskRequirementsAnalysis] = None
-    analysis_metadata: Dict[str, any] = {}
+    analysis_metadata: Dict[str, Any] = {}
     processing_time_ms: float
 
 class BatchComplexityRequest(BaseModel):
@@ -171,7 +186,7 @@ class BatchComplexityRequest(BaseModel):
 class BatchComplexityResponse(BaseModel):
     """Response from batch complexity analysis."""
     results: List[ComplexityAnalysisResponse]
-    summary: Dict[str, any] = {}
+    summary: Dict[str, Any] = {}
     total_processing_time_ms: float
 
 # Task Matching Schemas
@@ -202,7 +217,7 @@ class TaskMatchingRequest(BaseModel):
 class TaskMatchingResponse(BaseModel):
    """Response from task-developer matching."""
    matches: List[TaskDeveloperMatch]
-   matching_metadata: Dict[str, any] = {}
+   matching_metadata: Dict[str, Any] = {}
    processing_time_ms: float
 
 # Optimization Schemas
@@ -212,11 +227,20 @@ class OptimizationRequest(BaseModel):
    objectives: List[str] = ["productivity", "skill_development", "workload_balance"]
    constraints: Dict[str, float] = {}
 
+class AssignmentResult(BaseModel):
+    """Assignment result from optimization (without database fields)."""
+    task_id: int
+    developer_id: int
+    confidence_score: float = Field(..., ge=0.0, le=1.0)
+    reasoning: str
+    status: str = "suggested"
+
 class OptimizationResult(BaseModel):
-   assignments: List[Assignment]
-   objective_scores: Dict[str, float]
-   alternative_solutions: List[Dict] = []
-   optimization_time_ms: float
+    """Result from assignment optimization."""
+    assignments: List[AssignmentResult]
+    objective_scores: Dict[str, float]
+    alternative_solutions: List[Dict[str, Any]] = []
+    optimization_time_ms: float
 
 # Skill Analysis Schemas (existing - keeping for compatibility)
 class SkillTrend(BaseModel):
@@ -327,7 +351,7 @@ class RequirementValidation(BaseModel):
 class TaskComplexityValidation(BaseModel):
    """Validation results for complexity analysis."""
    is_valid: bool
-   confidence_level: str = Field(..., regex="^(low|medium|high)$")
+   confidence_level: str = Field(..., pattern="^(low|medium|high)$")
    validation_issues: List[str] = []
    recommendations: List[str] = []
 
@@ -362,14 +386,14 @@ class OptimizationObjective(str, Enum):
 
 class OptimizationConstraint(BaseModel):
     """Optimization constraint specification."""
-    constraint_type: str = Field(..., regex="^(max_workload|skill_requirement|availability|deadline)$")
+    constraint_type: str = Field(..., pattern="^(max_workload|skill_requirement|availability|deadline)$")
     value: float
     applies_to: Optional[List[int]] = None  # Developer or task IDs
 
 class OptimizationRequest(BaseModel):
     """Request for assignment optimization."""
-    task_ids: List[int] = Field(..., min_items=1)
-    developer_ids: List[int] = Field(..., min_items=1)
+    task_ids: List[int] = Field(..., min_length=1)
+    developer_ids: List[int] = Field(..., min_length=1)
     objectives: List[OptimizationObjective] = [
         OptimizationObjective.PRODUCTIVITY,
         OptimizationObjective.SKILL_DEVELOPMENT,
@@ -394,16 +418,6 @@ class AssignmentSuggestion(BaseModel):
     risk_factors: List[str] = []
     predicted_performance: Optional[float] = None
     prediction_confidence: Optional[float] = None
-
-class OptimizationResult(BaseModel):
-    """Result from assignment optimization."""
-    assignments: List[Assignment]
-    objective_scores: Dict[str, float]
-    alternative_solutions: List[Dict[str, Any]] = []
-    optimization_metadata: Dict[str, Any] = {}
-    optimization_time_ms: float
-    total_score: float = 0.0
-    confidence_level: str = Field(default="medium", regex="^(low|medium|high)$")
 
 # Learning System Schemas
 class LearningFeedback(BaseModel):
@@ -430,7 +444,7 @@ class LearningAnalytics(BaseModel):
     developers_modeled: int
     skills_tracked: int
     top_important_skills: List[Tuple[str, float]] = []
-    recent_performance_trend: str = Field(..., regex="^(improving|stable|declining|unknown)$")
+    recent_performance_trend: str = Field(..., pattern="^(improving|stable|declining|unknown)$")
 
 # Team Analytics Schemas
 class TeamPerformanceMetrics(BaseModel):
@@ -483,7 +497,7 @@ class BatchAssignmentRequest(BaseModel):
     """Request for batch assignment operations."""
     assignments: List[AssignmentCreate]
     optimization_mode: bool = True
-    conflict_resolution: str = Field(default="optimize", regex="^(optimize|reject|override)$")
+    conflict_resolution: str = Field(default="optimize", pattern="^(optimize|reject|override)$")
 
 class BatchAssignmentResponse(BaseModel):
     """Response from batch assignment operations."""
@@ -497,15 +511,15 @@ class BatchAssignmentResponse(BaseModel):
 class AssignmentUpdate(BaseModel):
     """Real-time assignment update."""
     assignment_id: int
-    update_type: str = Field(..., regex="^(status_change|progress_update|completion|feedback)$")
+    update_type: str = Field(..., pattern="^(status_change|progress_update|completion|feedback)$")
     update_data: Dict[str, Any]
     timestamp: datetime = Field(default_factory=datetime.now)
 
 class AssignmentNotification(BaseModel):
     """Assignment notification for real-time updates."""
-    notification_type: str = Field(..., regex="^(new_assignment|assignment_update|deadline_alert|performance_alert)$")
+    notification_type: str = Field(..., pattern="^(new_assignment|assignment_update|deadline_alert|performance_alert)$")
     assignment_id: int
     developer_id: int
     message: str
-    priority: str = Field(default="medium", regex="^(low|medium|high|urgent)$")
+    priority: str = Field(default="medium", pattern="^(low|medium|high|urgent)$")
     action_required: bool = False

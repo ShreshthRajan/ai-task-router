@@ -1,26 +1,23 @@
-"""
-Assignment API Endpoints
-
-Provides RESTful endpoints for task assignment optimization and management.
-"""
-
+# src/api/assignments.py
+import logging
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import asyncio
-from datetime import datetime
 
 from ..models.database import get_db, TaskAssignment, Task, Developer
 from ..models.schemas import (
     Assignment, AssignmentCreate, AssignmentUpdate,
     TaskMatchingRequest, TaskMatchingResponse, TaskDeveloperMatch,
-    OptimizationRequest, OptimizationResult,
+    OptimizationRequest, OptimizationResult, AssignmentResult,
     SuccessResponse, ErrorResponse
 )
 from ..core.assignment_engine.optimizer import AssignmentOptimizer
 from ..core.assignment_engine.learning_automata import LearningAutomata
 
 router = APIRouter()
+logger = logging.getLogger(__name__)  # Add this line
 
 # Initialize assignment components
 assignment_optimizer = AssignmentOptimizer()
@@ -156,59 +153,61 @@ async def delete_assignment(assignment_id: int, db: Session = Depends(get_db)):
 
 @router.post("/assignments/optimize", response_model=OptimizationResult)
 async def optimize_assignments(
-   request: OptimizationRequest,
-   db: Session = Depends(get_db)
+    request: OptimizationRequest,
+    db: Session = Depends(get_db)
 ):
-   """
-   Optimize task assignments using multi-objective optimization.
-   
-   This endpoint finds the optimal assignment of tasks to developers
-   considering multiple objectives like productivity, skill development,
-   and workload balance.
-   """
-   try:
-       if not request.task_ids:
-           raise HTTPException(status_code=400, detail="No task IDs provided")
-       
-       if not request.developer_ids:
-           raise HTTPException(status_code=400, detail="No developer IDs provided")
-       
-       # Create custom objective weights if provided
-       objective_weights = None
-       if hasattr(request, 'objectives') and request.objectives:
-           objective_mapping = {
-               'productivity': 0.35,
-               'skill_development': 0.25,
-               'workload_balance': 0.20,
-               'collaboration': 0.10,
-               'business_impact': 0.10
-           }
-           
-           total_weight = 0.0
-           objective_weights = {}
-           for objective in request.objectives:
-               if objective in objective_mapping:
-                   weight = objective_mapping[objective]
-                   objective_weights[objective] = weight
-                   total_weight += weight
-           
-           # Normalize weights
-           if total_weight > 0:
-               objective_weights = {k: v/total_weight for k, v in objective_weights.items()}
-       
-       # Perform optimization
-       result = await assignment_optimizer.optimize_assignments(
-           db=db,
-           task_ids=request.task_ids,
-           developer_ids=request.developer_ids,
-           optimization_objectives=objective_weights,
-           constraints=request.constraints if hasattr(request, 'constraints') else None
-       )
-       
-       return result
-       
-   except Exception as e:
-       raise HTTPException(status_code=500, detail=f"Assignment optimization failed: {str(e)}")
+    """
+    Optimize task assignments using multi-objective optimization.
+    
+    This endpoint finds the optimal assignment of tasks to developers
+    considering multiple objectives like productivity, skill development,
+    and workload balance.
+    """
+    try:
+        if not request.task_ids:
+            raise HTTPException(status_code=400, detail="No task IDs provided")
+        
+        if not request.developer_ids:
+            raise HTTPException(status_code=400, detail="No developer IDs provided")
+        
+        # Create custom objective weights if provided
+        objective_weights = None
+        if hasattr(request, 'objectives') and request.objectives:
+            objective_mapping = {
+                'productivity': 0.35,
+                'skill_development': 0.25,
+                'workload_balance': 0.20,
+                'collaboration': 0.10,
+                'business_impact': 0.10
+            }
+            
+            total_weight = 0.0
+            objective_weights = {}
+            for objective in request.objectives:
+                if objective in objective_mapping:
+                    weight = objective_mapping[objective]
+                    objective_weights[objective] = weight
+                    total_weight += weight
+            
+            # Normalize weights
+            if total_weight > 0:
+                objective_weights = {k: v/total_weight for k, v in objective_weights.items()}
+        
+        # Perform optimization
+        result = await assignment_optimizer.optimize_assignments(
+            db=db,
+            task_ids=request.task_ids,
+            developer_ids=request.developer_ids,
+            optimization_objectives=objective_weights,
+            constraints=getattr(request, 'constraints', None)
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Assignment optimization endpoint failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Assignment optimization failed: {str(e)}")
+    
 
 @router.post("/assignments/match-task", response_model=TaskMatchingResponse)
 async def match_task_to_developers(

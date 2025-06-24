@@ -19,8 +19,7 @@ import json
 import logging
 
 from ...models.database import Developer, Task, TaskAssignment, ExpertiseSnapshot
-from ...models.schemas import TaskDeveloperMatch, OptimizationRequest, OptimizationResult, Assignment
-
+from ...models.schemas import TaskDeveloperMatch, OptimizationRequest, OptimizationResult, Assignment, AssignmentResult
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -82,81 +81,82 @@ class AssignmentOptimizer:
          self.assignment_outcomes = {}
          
      async def optimize_assignments(
-         self,
-         db: Session,
-         task_ids: List[int],
-         developer_ids: Optional[List[int]] = None,
-         optimization_objectives: Optional[Dict[str, float]] = None,
-         constraints: Optional[Dict[str, Any]] = None
-     ) -> OptimizationResult:
-         """
-         Main optimization method that finds optimal task-developer assignments.
-         
-         Args:
-             db: Database session
-             task_ids: List of task IDs to assign
-             developer_ids: Optional list of developer IDs (if None, considers all)
-             optimization_objectives: Custom objective weights
-             constraints: Assignment constraints
-             
-         Returns:
-             OptimizationResult with optimal assignments and metadata
-         """
-         start_time = datetime.now()
-         
-         try:
-             # Load and prepare data
-             tasks = self._load_tasks(db, task_ids)
-             developers = self._load_developers(db, developer_ids)
-             
-             if not tasks or not developers:
-                 raise ValueError("No valid tasks or developers found")
-             
-             # Build optimization matrices
-             task_profiles = await self._build_task_profiles(db, tasks)
-             developer_capacities = await self._build_developer_capacities(db, developers)
-             
-             # Calculate assignment scores matrix
-             score_matrix = await self._calculate_assignment_matrix(
-                 task_profiles, developer_capacities, optimization_objectives or self.default_weights
-             )
-             
-             # Apply constraints
-             if constraints:
-                 score_matrix = self._apply_constraints(score_matrix, constraints, task_profiles, developer_capacities)
-             
-             # Perform optimization
-             optimal_assignments = self._optimize_assignments_hungarian(score_matrix, task_profiles, developer_capacities)
-             
-             # Generate alternative solutions
-             alternatives = await self._generate_alternatives(score_matrix, task_profiles, developer_capacities, optimal_assignments)
-             
-             # Calculate objective scores
-             objective_scores = self._calculate_objective_scores(optimal_assignments, task_profiles, developer_capacities)
-             
-             # Create assignment records
-             assignment_records = []
-             for assignment in optimal_assignments:
-                 assignment_record = Assignment(
-                     task_id=assignment['task_id'],
-                     developer_id=assignment['developer_id'],
-                     confidence_score=assignment['confidence'],
-                     reasoning=assignment['reasoning']
-                 )
-                 assignment_records.append(assignment_record)
-             
-             processing_time = (datetime.now() - start_time).total_seconds() * 1000
-             
-             return OptimizationResult(
-                 assignments=assignment_records,
-                 objective_scores=objective_scores,
-                 alternative_solutions=alternatives,
-                 optimization_time_ms=processing_time
-             )
-             
-         except Exception as e:
-             logger.error(f"Assignment optimization failed: {e}")
-             raise
+        self,
+        db: Session,
+        task_ids: List[int],
+        developer_ids: Optional[List[int]] = None,
+        optimization_objectives: Optional[Dict[str, float]] = None,
+        constraints: Optional[Dict[str, Any]] = None
+    ) -> OptimizationResult:
+        """
+        Main optimization method that finds optimal task-developer assignments.
+        
+        Args:
+            db: Database session
+            task_ids: List of task IDs to assign
+            developer_ids: Optional list of developer IDs (if None, considers all)
+            optimization_objectives: Custom objective weights
+            constraints: Assignment constraints
+            
+        Returns:
+            OptimizationResult with optimal assignments and metadata
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Load and prepare data
+            tasks = self._load_tasks(db, task_ids)
+            developers = self._load_developers(db, developer_ids)
+            
+            if not tasks or not developers:
+                raise ValueError("No valid tasks or developers found")
+            
+            # Build optimization matrices
+            task_profiles = await self._build_task_profiles(db, tasks)
+            developer_capacities = await self._build_developer_capacities(db, developers)
+            
+            # Calculate assignment scores matrix
+            score_matrix = await self._calculate_assignment_matrix(
+                task_profiles, developer_capacities, optimization_objectives or self.default_weights
+            )
+            
+            # Apply constraints
+            if constraints:
+                score_matrix = self._apply_constraints(score_matrix, constraints, task_profiles, developer_capacities)
+            
+            # Perform optimization
+            optimal_assignments = self._optimize_assignments_hungarian(score_matrix, task_profiles, developer_capacities)
+            
+            # Generate alternative solutions
+            alternatives = await self._generate_alternatives(score_matrix, task_profiles, developer_capacities, optimal_assignments)
+            
+            # Calculate objective scores
+            objective_scores = self._calculate_objective_scores(optimal_assignments, task_profiles, developer_capacities)
+            
+            # Create assignment records using the correct schema
+            assignment_records = []
+            for assignment in optimal_assignments:
+                assignment_record = AssignmentResult(
+                    task_id=assignment['task_id'],
+                    developer_id=assignment['developer_id'],
+                    confidence_score=assignment.get('confidence', assignment.get('score', 0.5)),
+                    reasoning=assignment['reasoning'],
+                    status='suggested'
+                )
+                assignment_records.append(assignment_record)
+            
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+            
+            return OptimizationResult(
+                assignments=assignment_records,
+                objective_scores=objective_scores,
+                alternative_solutions=alternatives,
+                optimization_time_ms=processing_time
+            )
+            
+        except Exception as e:
+            logger.error(f"Assignment optimization failed: {e}")
+            raise
      
      async def calculate_task_developer_matches(
          self,
