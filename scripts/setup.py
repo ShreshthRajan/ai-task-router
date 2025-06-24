@@ -9,14 +9,16 @@ import sys
 import asyncio
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.config import settings
 from src.models.database import create_tables, get_db, SessionLocal
 from src.core.developer_modeling.code_analyzer import CodeAnalyzer
 from src.core.developer_modeling.skill_extractor import SkillExtractor
 from src.integrations.github_client import GitHubClient
+from sqlalchemy import text
 
 def download_models():
     """Download and cache required ML models."""
@@ -51,7 +53,7 @@ def setup_database():
         
         # Test connection
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         print("  ✅ Database connection verified")
         
@@ -98,7 +100,7 @@ def verify_installation():
             "developer_id": "test",
             "github_username": "test",
             "commits": [{
-                "timestamp": "2024-01-01T00:00:00Z",
+                "timestamp": "2024-01-01T00:00:00",
                 "files": test_files
             }],
             "pr_reviews": [],

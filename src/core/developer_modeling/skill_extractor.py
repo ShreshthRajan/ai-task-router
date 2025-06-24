@@ -252,27 +252,34 @@ class SkillExtractor:
         if not interactions:
             return 0.0
         
-        knowledge_sharing_count = 0
+        knowledge_sharing_score = 0.0
         total_interactions = len(interactions)
         
         sharing_patterns = [
             r'here\'s how', r'you can', r'try this', r'example',
             r'documentation', r'link to', r'resource', r'tutorial',
-            r'best practice', r'pattern', r'approach'
+            r'best practice', r'pattern', r'approach', r'recommend',
+            r'suggest', r'consider', r'solution'
         ]
         
         for interaction in interactions:
             content = interaction.get('content', '').lower()
+            word_count = len(content.split())
             
             # Check for knowledge sharing patterns
-            sharing_score = sum(1 for pattern in sharing_patterns 
-                              if re.search(pattern, content))
+            sharing_indicators = sum(1 for pattern in sharing_patterns 
+                                if re.search(pattern, content))
             
-            # Long, detailed responses are likely knowledge sharing
-            if len(content.split()) > 30 and sharing_score > 0:
-                knowledge_sharing_count += 1
+            if sharing_indicators > 0:
+                # Score based on both indicators and content depth
+                content_weight = min(word_count / 30, 1.0)  # More content = higher weight
+                indicator_weight = min(sharing_indicators / 3, 1.0)  # More indicators = higher weight
+                
+                interaction_score = (content_weight * 0.6 + indicator_weight * 0.4)
+                knowledge_sharing_score += interaction_score
         
-        return knowledge_sharing_count / total_interactions
+        # Normalize by total interactions
+        return min(knowledge_sharing_score / total_interactions, 1.0)
     
     def _assess_technical_leadership(self, pr_reviews: List[Dict], 
                                    issue_comments: List[Dict]) -> float:

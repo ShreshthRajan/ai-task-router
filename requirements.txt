@@ -20,4 +20,5 @@ plotly==5.17.0
 spacy==3.7.2
 tree-sitter==0.20.4
 pygithub==2.1.1
-requests==2.31.0
+requests==2.31.0aiohttp==3.9.1
+pytest==7.4.4
