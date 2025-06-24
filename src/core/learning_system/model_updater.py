@@ -441,7 +441,13 @@ class ModelUpdater:
         experiment: LearningExperimentCreate
     ) -> LearningExperimentSchema:
         """Create a new learning experiment for A/B testing."""
-        db_experiment = LearningExperiment(**experiment.dict())
+        experiment_data = experiment.dict()
+        experiment_data.update({
+            'control_results': {},
+            'experimental_results': {},
+            'start_date': datetime.utcnow()
+        })
+        db_experiment = LearningExperiment(**experiment_data)
         db.add(db_experiment)
         db.commit()
         db.refresh(db_experiment)

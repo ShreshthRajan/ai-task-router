@@ -417,10 +417,12 @@ class SkillImportanceFactor(Base):
     # Learning data
     successful_assignments = Column(Integer, default=0)
     total_assignments = Column(Integer, default=0)
-    avg_performance_with_skill = Column(Float)
-    avg_performance_without_skill = Column(Float)
+    avg_performance_with_skill = Column(Float, default=0.0)  
+    avg_performance_without_skill = Column(Float, default=0.0)  
     
     # Temporal tracking
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_learning_update = Column(DateTime, default=datetime.utcnow)
+
+    

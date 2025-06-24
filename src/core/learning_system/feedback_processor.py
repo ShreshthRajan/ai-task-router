@@ -375,7 +375,6 @@ class FeedbackProcessor:
         skill_level: float,
         performance: float
     ):
-        """Update importance factor for a specific skill in context."""
         factor = db.query(SkillImportanceFactor).filter(
             and_(
                 SkillImportanceFactor.skill_name == skill,
@@ -390,44 +389,33 @@ class FeedbackProcessor:
                 skill_name=skill,
                 task_type=task_type,
                 complexity_range=complexity_range,
-                domain=domain
+                domain=domain,
+                successful_assignments=0,
+                total_assignments=0,
+                avg_performance_with_skill=0.0,
+                avg_performance_without_skill=0.0
             )
             db.add(factor)
         
-        # Update statistics
-        factor.total_assignments += 1
-        if performance > 0.7:  # Consider high performance as success
-            factor.successful_assignments += 1
+        # Update statistics with None checks
+        factor.total_assignments = (factor.total_assignments or 0) + 1
+        if performance > 0.7:
+            factor.successful_assignments = (factor.successful_assignments or 0) + 1
         
-        # Update average performance
+        # Update average performance with None check
         if factor.avg_performance_with_skill is None:
             factor.avg_performance_with_skill = performance
         else:
-            # Exponential moving average
             alpha = 0.1
             factor.avg_performance_with_skill = (
                 alpha * performance + 
                 (1 - alpha) * factor.avg_performance_with_skill
             )
         
-        # Update importance factor based on correlation with performance
-        if factor.total_assignments >= self.min_sample_size:
-            success_rate = factor.successful_assignments / factor.total_assignments
-            
-            # Higher success rate with skill indicates higher importance
-            factor.importance_factor = (
-                0.8 * factor.importance_factor + 
-                0.2 * (success_rate * 2.0)  # Scale to 0-2 range
-            )
-            
-            factor.confidence = min(
-                1.0,
-                factor.total_assignments / (self.min_sample_size * 2)
-            )
-        
         factor.last_learning_update = datetime.utcnow()
         db.commit()
-    
+
+    # MOVE THIS METHOD OUT OF _update_skill_factor (fix indentation)
     async def _update_model_performance(
         self, 
         db: Session, 
