@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 from typing import Dict, List
 from pydantic_settings import BaseSettings
-
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/taskrouter"
