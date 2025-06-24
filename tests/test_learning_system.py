@@ -1,8 +1,13 @@
 import pytest
 import asyncio
+import sys
+import os
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from unittest.mock import Mock, patch
+
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.core.learning_system.feedback_processor import FeedbackProcessor
 from src.core.learning_system.model_updater import ModelUpdater
@@ -12,6 +17,24 @@ from src.models.database import (
     ModelPerformance, DeveloperPreference, SkillImportanceFactor
 )
 from src.models.schemas import AssignmentOutcomeCreate, LearningExperimentCreate
+
+@pytest.fixture
+def db_session():
+    import tempfile
+    from sqlalchemy import create_engine
+    from src.models.database import Base, SessionLocal
+    
+    # Use in-memory SQLite for tests
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    
+    # Create session
+    from sqlalchemy.orm import sessionmaker
+    TestSession = sessionmaker(bind=engine)
+    session = TestSession()
+    
+    yield session
+    session.close()
 
 @pytest.fixture
 def feedback_processor():
@@ -194,7 +217,6 @@ class TestFeedbackProcessor:
                collaboration_effectiveness=0.7,
                time_estimation_accuracy=0.75
            )
-           assignment.outcome = outcome
            db_session.add(assignment)
            db_session.add(outcome)
        

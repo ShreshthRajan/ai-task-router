@@ -449,10 +449,13 @@ class FeedbackProcessor:
                 task = db.query(Task).filter(Task.id == assignment.task_id).first()
                 if task and task.technical_complexity is not None:
                     # Use time estimation accuracy as proxy for complexity prediction accuracy
+                    domain_difficulty = task.domain_difficulty if task.domain_difficulty is not None else 0.0
+                    collaboration_requirements = task.collaboration_requirements if task.collaboration_requirements is not None else 0.0
+                    
                     predicted_difficulty = (
                         task.technical_complexity + 
-                        task.domain_difficulty + 
-                        task.collaboration_requirements
+                        domain_difficulty + 
+                        collaboration_requirements
                     ) / 3.0
                     
                     # Infer actual difficulty from performance metrics
