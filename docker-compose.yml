@@ -3,7 +3,7 @@ services:
   app:
     build: .
     ports:
-      - \"8000:8000\"
+      - 8000:8000
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/taskrouter
       - REDIS_URL=redis://redis:6379
@@ -17,7 +17,7 @@ services:
     build: .
     command: streamlit run src/dashboard/app.py --server.port 8501 --server.address 0.0.0.0
     ports:
-      - \"8501:8501\"
+      - 8501:8501
     depends_on:
       - app
 
@@ -34,21 +34,4 @@ services:
     image: redis:7-alpine
 
 volumes:
-  postgres_data:" > docker-compose.yml
-
-# 4. Create Dockerfile
-echo "FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN python -m spacy download en_core_web_sm
-COPY . .
-EXPOSE 8000
-CMD [\"uvicorn\", \"src.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]" > Dockerfile
-
-# 5. Environment file
-echo "DATABASE_URL=postgresql://user:password@localhost:5432/taskrouter
-REDIS_URL=redis://localhost:6379
-GITHUB_TOKEN=your_github_token
-SECRET_KEY=your_secret_key_here
-DEBUG=True
+  postgres_data:
