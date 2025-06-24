@@ -1,3 +1,4 @@
+# src/integrations/github_client.py
 import aiohttp
 import asyncio
 from typing import Dict, List, Optional
@@ -383,3 +384,116 @@ class GitHubClient:
         except Exception as e:
             print(f"Error fetching issue comments: {e}")
             return []
+    
+    async def get_repository_issues(self, owner: str, repo: str, 
+                              state: str = "open", labels: List[str] = None,
+                              max_issues: int = 50) -> List[Dict]:
+        """Fetch issues from a GitHub repository."""
+        
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            issues = []
+            page = 1
+            
+            while len(issues) < max_issues:
+                params = {
+                    "state": state,
+                    "per_page": min(100, max_issues - len(issues)),
+                    "page": page,
+                    "sort": "updated",
+                    "direction": "desc"
+                }
+                
+                if labels:
+                    params["labels"] = ",".join(labels)
+                
+                try:
+                    url = f"{self.base_url}/repos/{owner}/{repo}/issues"
+                    async with session.get(url, params=params) as response:
+                        if response.status == 200:
+                            page_issues = await response.json()
+                            if not page_issues:
+                                break
+                            
+                            # Filter out pull requests (they appear in issues API)
+                            actual_issues = [issue for issue in page_issues if 'pull_request' not in issue]
+                            issues.extend(actual_issues)
+                            page += 1
+                            
+                            await asyncio.sleep(0.1)  # Rate limiting
+                        else:
+                            print(f"Error fetching issues: {response.status}")
+                            break
+                            
+                except Exception as e:
+                    print(f"Error fetching issues: {e}")
+                    break
+            
+            return issues[:max_issues]
+
+    async def get_issue_details(self, owner: str, repo: str, issue_number: int) -> Optional[Dict]:
+        """Get detailed information about a specific issue."""
+        
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            try:
+                url = f"{self.base_url}/repos/{owner}/{repo}/issues/{issue_number}"
+                
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        issue_data = await response.json()
+                        
+                        # Get comments
+                        comments = await self._get_issue_comments_detailed(
+                            session, owner, repo, issue_number
+                        )
+                        issue_data['comments_data'] = comments
+                        
+                        return issue_data
+                    else:
+                        print(f"Error fetching issue details: {response.status}")
+                        return None
+                        
+            except Exception as e:
+                print(f"Error fetching issue details: {e}")
+                return None
+
+    async def _get_issue_comments_detailed(self, session: aiohttp.ClientSession,
+                                         owner: str, repo: str, issue_number: int) -> List[Dict]:
+        """Get detailed comments for an issue."""
+        
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/issues/{issue_number}/comments"
+            
+            async with session.get(url) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    return []
+                    
+        except Exception as e:
+            print(f"Error fetching issue comments: {e}")
+            return []
+
+    async def search_repositories(self, query: str, max_repos: int = 10) -> List[Dict]:
+        """Search for repositories using GitHub search API."""
+        
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            try:
+                params = {
+                    "q": query,
+                    "sort": "stars",
+                    "order": "desc",
+                    "per_page": min(max_repos, 100)
+                }
+                
+                url = f"{self.base_url}/search/repositories"
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data.get('items', [])
+                    else:
+                        print(f"Error searching repositories: {response.status}")
+                        return []
+                        
+            except Exception as e:
+                print(f"Error searching repositories: {e}")
+                return []
