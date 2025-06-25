@@ -18,8 +18,8 @@ from scipy.spatial.distance import cosine
 import json
 import logging
 
-from ...models.database import Developer, Task, TaskAssignment, ExpertiseSnapshot
-from ...models.schemas import TaskDeveloperMatch, OptimizationRequest, OptimizationResult, Assignment, AssignmentResult
+from models.database import Developer, Task, TaskAssignment, ExpertiseSnapshot
+from models.schemas import TaskDeveloperMatch, OptimizationRequest, OptimizationResult, Assignment, AssignmentResult
 logger = logging.getLogger(__name__)
 
 @dataclass

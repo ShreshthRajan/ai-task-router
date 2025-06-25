@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session
 import uvicorn
 
 
-from .config import settings
-from .models.database import create_tables, get_db
-from .api import developers, assignments, tasks, learning
-from .core.developer_modeling.expertise_tracker import ExpertiseTracker
+from config import settings
+from models.database import create_tables, get_db
+from api import developers, assignments, tasks, learning
+from api.github_integration import router as github_router
+from core.developer_modeling.expertise_tracker import ExpertiseTracker
+from models.database import engine, Base
 
 # Create FastAPI app
 app = FastAPI(
@@ -54,7 +56,7 @@ app.include_router(developers.router, prefix="/api/v1", tags=["developers"])
 app.include_router(assignments.router, prefix="/api/v1", tags=["assignments"])
 app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
 app.include_router(learning.router, prefix="/api/v1", tags=["learning"])
-
+app.include_router(github_router)
 
 @app.get("/")
 async def root():

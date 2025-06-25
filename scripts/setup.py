@@ -14,7 +14,10 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.config import settings
-from src.models.database import create_tables, get_db, SessionLocal
+import sys
+sys.path.append('src')
+from models.database import create_tables, get_db, SessionLocal
+
 from src.core.developer_modeling.code_analyzer import CodeAnalyzer
 from src.core.developer_modeling.skill_extractor import SkillExtractor
 from src.integrations.github_client import GitHubClient

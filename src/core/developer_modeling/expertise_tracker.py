@@ -6,9 +6,9 @@ from collections import defaultdict
 import json
 
 from sqlalchemy.orm import Session
-from ...models.database import Developer, ExpertiseSnapshot, get_db
+from models.database import Developer, ExpertiseSnapshot, get_db
 from .skill_extractor import SkillExtractor, DeveloperProfile
-from ...config import settings
+from config import settings
 
 @dataclass
 class SkillTrend:

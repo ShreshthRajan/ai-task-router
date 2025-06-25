@@ -10,7 +10,7 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from sentence_transformers import SentenceTransformer
 
-from ...config import settings
+from config import settings
 
 @dataclass
 class CodeMetrics:

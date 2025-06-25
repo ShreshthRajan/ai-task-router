@@ -8,12 +8,12 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, accuracy_score
 import asyncio
 
-from ...models.database import (
+from models.database import (
     TaskAssignment, AssignmentOutcome, Developer, Task, 
     ModelPerformance, SystemMetrics, DeveloperPreference,
     SkillImportanceFactor, ExpertiseSnapshot
 )
-from ...models.schemas import (
+from models.schemas import (
     AssignmentOutcomeCreate, FeedbackProcessingResult,
     DeveloperPreferenceProfile, SkillImportanceAnalysis
 )

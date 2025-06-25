@@ -5,16 +5,16 @@ from typing import List, Optional, Dict
 import asyncio
 from datetime import datetime
 
-from ..models.database import get_db, Task, TaskComplexityAnalysis, TaskRequirement
-from ..models.schemas import (
+from models.database import get_db, Task, TaskComplexityAnalysis, TaskRequirement
+from models.schemas import (
     Task as TaskSchema, TaskCreate, TaskUpdate, TaskComplexityResult,
     ComplexityAnalysisRequest, ComplexityAnalysisResponse, BatchComplexityRequest, BatchComplexityResponse,
     TaskRequirementsAnalysis, RequirementValidation, TaskDeveloperMatch, TaskMatchingRequest, TaskMatchingResponse,
     TaskRequirement as TaskRequirementSchema
 )
-from ..core.task_analysis.complexity_predictor import ComplexityPredictor
-from ..core.task_analysis.requirement_parser import RequirementParser
-from ..integrations.github_client import GitHubClient
+from core.task_analysis.complexity_predictor import ComplexityPredictor
+from core.task_analysis.requirement_parser import RequirementParser
+from integrations.github_client import GitHubClient
 
 router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
 

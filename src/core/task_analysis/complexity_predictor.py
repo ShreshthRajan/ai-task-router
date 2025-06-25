@@ -1,3 +1,4 @@
+# src/core/task_analysis/complexity_predictor.py
 import numpy as np
 import spacy
 from typing import Dict, List, Optional, Tuple
@@ -9,9 +10,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 
-from ...config import settings
-from ..developer_modeling.code_analyzer import CodeAnalyzer
-from ...integrations.github_client import GitHubClient
+import sys
+sys.path.append('../../..')
+from config import settings
+from core.developer_modeling.code_analyzer import CodeAnalyzer
+from integrations.github_client import GitHubClient
 
 @dataclass
 class TaskComplexity:

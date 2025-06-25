@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import json
 
-from ..config import settings
+from config import settings
 
 class GitHubClient:
     """Client for fetching developer data from GitHub API."""

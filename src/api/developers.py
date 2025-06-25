@@ -4,10 +4,10 @@ from typing import List, Optional, Dict
 from datetime import datetime
 import json
 
-from ..models.database import get_db, Developer, ExpertiseSnapshot
-from ..models.schemas import DeveloperProfile, DeveloperCreate, DeveloperUpdate
-from ..core.developer_modeling.expertise_tracker import ExpertiseTracker
-from ..integrations.github_client import GitHubClient
+from models.database import get_db, Developer, ExpertiseSnapshot
+from models.schemas import DeveloperProfile, DeveloperCreate, DeveloperUpdate
+from core.developer_modeling.expertise_tracker import ExpertiseTracker
+from integrations.github_client import GitHubClient
 
 router = APIRouter()
 expertise_tracker = ExpertiseTracker()

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import json
 
-from ..config import settings
+from config import settings
 
 Base = declarative_base()
 

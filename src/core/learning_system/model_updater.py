@@ -1,3 +1,7 @@
+import sys
+sys.path.append('../..')
+
+# src/core/learning_system/model_updater.py
 import json
 import logging
 from datetime import datetime, timedelta
@@ -10,16 +14,16 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 import joblib
 import asyncio
 
-from ...models.database import (
+from models.database import (
     TaskAssignment, AssignmentOutcome, Developer, Task,
     ModelPerformance, LearningExperiment, DeveloperPreference,
     SkillImportanceFactor
 )
-from ...models.schemas import (
+from models.schemas import (
     ModelUpdateResult, LearningExperimentCreate, 
     LearningExperiment as LearningExperimentSchema
 )
-from ..assignment_engine.learning_automata import LearningAutomata
+from core.assignment_engine.learning_automata import LearningAutomata
 
 logger = logging.getLogger(__name__)
 

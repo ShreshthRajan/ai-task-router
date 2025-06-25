@@ -3,17 +3,17 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
-from ..models.database import get_db
-from ..models.schemas import (
+from models.database import get_db
+from models.schemas import (
     AssignmentOutcomeCreate, AssignmentOutcome, SystemHealthMetrics,
     LearningSystemAnalytics, PredictiveInsights, SystemOptimizationSuggestion,
     LearningProgress, FeedbackProcessingResult, ModelUpdateResult,
     LearningExperimentCreate, LearningExperiment, TeamPerformanceMetrics,
     DeveloperPreferenceProfile, SkillImportanceAnalysis
 )
-from ..core.learning_system.feedback_processor import FeedbackProcessor
-from ..core.learning_system.model_updater import ModelUpdater
-from ..core.learning_system.system_analytics import SystemAnalytics
+from core.learning_system.feedback_processor import FeedbackProcessor
+from core.learning_system.model_updater import ModelUpdater
+from core.learning_system.system_analytics import SystemAnalytics
 
 router = APIRouter()
 

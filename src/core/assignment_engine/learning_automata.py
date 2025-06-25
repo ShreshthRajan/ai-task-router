@@ -13,7 +13,7 @@ import json
 import logging
 from sqlalchemy.orm import Session
 
-from ...models.database import TaskAssignment, Developer, Task
+from models.database import TaskAssignment, Developer, Task
 
 logger = logging.getLogger(__name__)
 

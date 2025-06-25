@@ -10,7 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
-from ...config import settings
+from config import settings
 from .code_analyzer import CodeAnalyzer, CodeMetrics
 
 @dataclass

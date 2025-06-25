@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/taskrouter"
+    DATABASE_URL: str = "sqlite:///../data/taskrouter.db"
     REDIS_URL: str = "redis://localhost:6379"
     
     # API Keys

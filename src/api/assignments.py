@@ -6,15 +6,15 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import asyncio
 
-from ..models.database import get_db, TaskAssignment, Task, Developer
-from ..models.schemas import (
+from models.database import get_db, TaskAssignment, Task, Developer
+from models.schemas import (
     Assignment, AssignmentCreate, AssignmentUpdate,
     TaskMatchingRequest, TaskMatchingResponse, TaskDeveloperMatch,
     OptimizationRequest, OptimizationResult, AssignmentResult,
     SuccessResponse, ErrorResponse
 )
-from ..core.assignment_engine.optimizer import AssignmentOptimizer
-from ..core.assignment_engine.learning_automata import LearningAutomata
+from core.assignment_engine.optimizer import AssignmentOptimizer
+from core.assignment_engine.learning_automata import LearningAutomata
 
 router = APIRouter()
 logger = logging.getLogger(__name__)  # Add this line
