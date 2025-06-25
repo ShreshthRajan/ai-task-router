@@ -21,7 +21,6 @@ from src.config import settings
 from src.core.task_analysis.complexity_predictor import ComplexityPredictor, TaskComplexity
 from src.core.task_analysis.requirement_parser import RequirementParser, ParsedRequirement, TaskRequirements
 
-# # Remove the duplicate TestGitHubClient class and replace with this single one:
 # class TestGitHubClient:
 #     """Test suite for GitHubClient."""
     
