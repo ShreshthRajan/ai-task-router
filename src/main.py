@@ -12,6 +12,8 @@ from api.github_integration import router as github_router
 from core.developer_modeling.expertise_tracker import ExpertiseTracker
 from models.database import engine, Base
 
+from sqlalchemy import text
+
 # Create FastAPI app
 app = FastAPI(
     title="AI Engineering Task Router",
@@ -73,7 +75,8 @@ async def health_check(db: Session = Depends(get_db)):
     """Detailed health check with database connectivity."""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         
         return {
             "status": "healthy",
