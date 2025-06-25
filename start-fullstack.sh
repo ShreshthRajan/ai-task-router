@@ -1,3 +1,4 @@
+# start-fullstack.sh
 #!/bin/bash
 
 # AI Task Router - Full Stack Startup Script
@@ -71,8 +72,9 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-if [ ! -f "package.json" ]; then
-    print_error "Please run this script from the project root directory."
+# Check if we're in the right directory (look for requirements.txt instead)
+if [ ! -f "requirements.txt" ]; then
+    print_error "Please run this script from the project root directory (requirements.txt not found)."
     exit 1
 fi
 
@@ -111,7 +113,7 @@ print_status "Database setup completed"
 # Frontend Setup
 print_info "Setting up frontend..."
 
-# Check if frontend directory exists, if not create it
+# Check if frontend directory exists
 if [ ! -d "frontend" ]; then
     print_error "Frontend directory not found. Please ensure all frontend files are in place."
     exit 1
@@ -143,7 +145,7 @@ cd ..
 sleep 3
 
 # Check if backend is running
-if curl -s http://localhost:8000/docs > /dev/null 2>&1; then
+if curl -s http://localhost:8000/health > /dev/null 2>&1; then
     print_status "Backend server started successfully"
 else
     print_error "Backend server failed to start"

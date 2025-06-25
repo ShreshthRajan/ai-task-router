@@ -1,0 +1,120 @@
+#!/bin/bash
+
+# AI Task Router - Safe Codebase Cleanup Script
+# This script removes redundant files while preserving important ones
+
+echo "🧹 Starting AI Task Router codebase cleanup..."
+
+# First, let's check what exists before removing anything
+echo "📋 Checking current file structure..."
+
+echo "Root level frontend config files:"
+ls -la package.json package-lock.json next.config.js next.config.ts next-env.d.ts postcss.config.js postcss.config.mjs tailwind.config.js ts.config.js tsconfig.json 2>/dev/null || echo "Some files not found (this is normal)"
+
+echo ""
+echo "Frontend directory contents:"
+ls -la frontend/ 2>/dev/null || echo "Frontend directory not found"
+
+echo ""
+echo "Verifying frontend has its own config files..."
+ls -la frontend/package.json frontend/next.config.js frontend/tsconfig.json 2>/dev/null || echo "Frontend config files missing - STOP! Don't remove root files yet."
+
+# Safety check - only proceed if frontend directory has the necessary files
+if [ -f "frontend/package.json" ] && [ -f "frontend/tsconfig.json" ]; then
+    echo "✅ Frontend directory has its own config files. Safe to remove root duplicates."
+    
+    echo ""
+    echo "🗑️  Removing redundant root-level frontend config files..."
+    
+    # Remove redundant package.json files
+    if [ -f "package.json" ]; then
+        echo "Removing root package.json (keeping frontend/package.json)"
+        rm package.json
+    fi
+    
+    if [ -f "package-lock.json" ]; then
+        echo "Removing root package-lock.json (keeping frontend/package-lock.json)"
+        rm package-lock.json
+    fi
+    
+    # Remove redundant Next.js config files
+    if [ -f "next.config.js" ]; then
+        echo "Removing root next.config.js (keeping frontend/next.config.js)"
+        rm next.config.js
+    fi
+    
+    if [ -f "next.config.ts" ]; then
+        echo "Removing root next.config.ts (keeping frontend/next.config.ts)"
+        rm next.config.ts
+    fi
+    
+    if [ -f "next-env.d.ts" ]; then
+        echo "Removing root next-env.d.ts (keeping frontend/next-env.d.ts)"
+        rm next-env.d.ts
+    fi
+    
+    # Remove redundant PostCSS config files
+    if [ -f "postcss.config.js" ]; then
+        echo "Removing root postcss.config.js (keeping frontend/postcss.config.js)"
+        rm postcss.config.js
+    fi
+    
+    if [ -f "postcss.config.mjs" ]; then
+        echo "Removing root postcss.config.mjs"
+        rm postcss.config.mjs
+    fi
+    
+    # Remove redundant Tailwind config
+    if [ -f "tailwind.config.js" ]; then
+        echo "Removing root tailwind.config.js (keeping frontend/tailwind.config.js)"
+        rm tailwind.config.js
+    fi
+    
+    # Remove redundant TypeScript configs
+    if [ -f "ts.config.js" ]; then
+        echo "Removing root ts.config.js"
+        rm ts.config.js
+    fi
+    
+    if [ -f "tsconfig.json" ]; then
+        echo "Removing root tsconfig.json (keeping frontend/tsconfig.json)"
+        rm tsconfig.json
+    fi
+    
+    echo "✅ Cleanup completed successfully!"
+    
+else
+    echo "❌ SAFETY STOP: Frontend directory missing required config files."
+    echo "Please ensure frontend/package.json and frontend/tsconfig.json exist before running cleanup."
+    exit 1
+fi
+
+echo ""
+echo "📁 Final directory structure check:"
+echo "Root level (should only have Python backend files):"
+ls -la *.py *.txt *.ini *.md *.sh 2>/dev/null || echo "Backend files found"
+
+echo ""
+echo "Frontend directory:"
+ls -la frontend/ 2>/dev/null || echo "Frontend directory check"
+
+echo ""
+echo "🎉 Cleanup completed! Your codebase structure is now clean."
+echo ""
+echo "Next steps:"
+echo "1. Update .gitignore with the new structure"
+echo "2. Test that both backend and frontend still work"
+echo "3. Commit the cleanup changes"
+
+# Verify important files are still present
+echo ""
+echo "🔍 Verifying important files are preserved:"
+echo "Backend files:"
+[ -f "main.py" ] && echo "✅ main.py" || echo "❌ main.py MISSING!"
+[ -f "requirements.txt" ] && echo "✅ requirements.txt" || echo "❌ requirements.txt MISSING!"
+[ -d "src" ] && echo "✅ src/ directory" || echo "❌ src/ directory MISSING!"
+
+echo "Frontend files:"
+[ -f "frontend/package.json" ] && echo "✅ frontend/package.json" || echo "❌ frontend/package.json MISSING!"
+[ -f "frontend/next.config.js" ] && echo "✅ frontend/next.config.js" || echo "❌ frontend/next.config.js MISSING!"
+[ -d "frontend/src" ] && echo "✅ frontend/src/ directory" || echo "❌ frontend/src/ directory MISSING!"
