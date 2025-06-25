@@ -1,3 +1,4 @@
+// app/dashboard/analyze/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,8 +13,28 @@ import {
   githubApi, 
   GitHubAnalysisResponse, 
   GitHubAnalysisRequest,
+  TaskAnalysis,
+  TeamMember,
+  TeamMetrics,
+  RepositoryInfo,
+  ComplexityDistribution,
+  AnalysisMetadata,
   dataUtils
 } from '../../../lib/api-client';
+
+// Define locally to avoid import issues
+interface ExtendedAnalysisResult {
+  repository: RepositoryInfo
+  team_analysis: {
+    developers: TeamMember[]
+    metrics: TeamMetrics
+  }
+  task_analysis: {
+    tasks: TaskAnalysis[]
+    complexity_distribution: ComplexityDistribution
+  }
+  analysis_metadata: AnalysisMetadata
+}
 
 interface AnalysisStep {
   id: string;
@@ -27,7 +48,7 @@ export default function GitHubAnalyzer() {
   const searchParams = useSearchParams();
   const [repoUrl, setRepoUrl] = useState(searchParams?.get('repo') || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<GitHubAnalysisResponse | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<ExtendedAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
     { 
@@ -88,7 +109,7 @@ export default function GitHubAnalyzer() {
 
   const handleAnalyze = async () => {
     if (!repoUrl) return;
-
+  
     // Validate URL format first
     if (!dataUtils.validateGitHubUrl(repoUrl)) {
       setError('Invalid GitHub URL format. Please use: https://github.com/owner/repo');
@@ -98,6 +119,31 @@ export default function GitHubAnalyzer() {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
+  };
+  
+  // Add helper function at top of component
+  const calculateComplexityDistribution = (tasks: TaskAnalysis[]) => {
+    const distribution = { low: 0, medium: 0, high: 0 };
+    
+    tasks.forEach(task => {
+      const avgComplexity = (
+        task.complexity_analysis.technical_complexity +
+        task.complexity_analysis.domain_difficulty +
+        task.complexity_analysis.business_impact
+      ) / 3;
+      
+      if (avgComplexity > 0.7) distribution.high++;
+      else if (avgComplexity > 0.4) distribution.medium++;
+      else distribution.low++;
+    });
+    
+    const total = tasks.length;
+    return {
+      low: total > 0 ? distribution.low / total : 0,
+      medium: total > 0 ? distribution.medium / total : 0,
+      high: total > 0 ? distribution.high / total : 0
+    };
+  };
 
     try {
       const { owner, repo } = parseGitHubUrl(repoUrl);
@@ -130,9 +176,8 @@ export default function GitHubAnalyzer() {
         };
 
         const response = await githubApi.analyzeRepository(request);
-        
         console.log('✅ Real backend API call successful');
-        setAnalysisResult(response.data);
+        setAnalysisResult(response.data); // ✅ Correct - use response.data
         
       } catch (apiError) {
         console.error('❌ Backend API call failed:', apiError);
@@ -309,8 +354,8 @@ export default function GitHubAnalyzer() {
               <div className="flex-1">
                 <div className="flex items-center mb-2">
                   <h2 className="text-heading-2 mr-3">
-                    {analysisResult.repository.owner}/{analysisResult.repository.name}
-                  </h2>
+                  {analysisResult.repository.owner}/{analysisResult.repository.name}
+                </h2>
                   <ExternalLink 
                     className="h-5 w-5 text-slate-400 hover:text-blue-400 cursor-pointer transition-colors" 
                     onClick={() => window.open(`https://github.com/${analysisResult.repository.owner}/${analysisResult.repository.name}`, '_blank')}

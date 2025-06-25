@@ -497,3 +497,26 @@ class GitHubClient:
             except Exception as e:
                 print(f"Error searching repositories: {e}")
                 return []
+    
+    async def get_repository_contributors(self, owner: str, repo: str, 
+                                    max_contributors: int = 30) -> List[Dict]:
+        """Get repository contributors."""
+        
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            try:
+                url = f"{self.base_url}/repos/{owner}/{repo}/contributors"
+                params = {
+                    "per_page": min(max_contributors, 100),
+                    "anon": "false"
+                }
+                
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        print(f"Error fetching contributors: {response.status}")
+                        return []
+                        
+            except Exception as e:
+                print(f"Error fetching contributors: {e}")
+                return []
