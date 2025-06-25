@@ -6,7 +6,17 @@ import {
   Brain, Zap, Target, TrendingUp, Users, AlertTriangle,
   Clock, CheckCircle, Activity, ArrowUp, ArrowDown
 } from 'lucide-react'
-import { learningApi, assignmentApi, SystemHealth } from '../../lib/api-client'
+import { learningApi, assignmentsApi } from '../../lib/api-client'
+
+interface SystemHealth {
+  assignment_success_rate: number
+  avg_developer_satisfaction: number
+  avg_skill_development_rate: number
+  team_productivity_score: number
+  prediction_confidence_avg: number
+  total_assignments: number
+  completed_assignments: number
+}
 import Link from 'next/link'
 
 interface AlertItem {
@@ -32,7 +42,7 @@ export default function DashboardOverview() {
     try {
       const [healthResponse, analyticsResponse] = await Promise.all([
         learningApi.getSystemHealth(),
-        assignmentApi.getAnalytics()
+        assignmentsApi.getTeamPerformance([], 30)
       ])
       
       setSystemHealth(healthResponse.data)
