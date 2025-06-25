@@ -126,7 +126,7 @@ async def analyze_github_repository(
         # Step 4: Calculate team metrics
         team_metrics = calculate_team_metrics(developers_data, tasks_data)
         
-        # Calculate analysis time
+        # Calculate analysis timex
         analysis_time = (datetime.now() - start_time).total_seconds() * 1000
         
         return GitHubAnalysisResponse(
