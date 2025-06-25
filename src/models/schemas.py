@@ -4,6 +4,10 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from enum import Enum
 
+# Fix Pydantic warnings about model namespace
+import warnings
+warnings.filterwarnings("ignore", message="Field .* has conflict with protected namespace")
+
 # Developer Schemas (existing)
 class DeveloperBase(BaseModel):
     github_username: str
