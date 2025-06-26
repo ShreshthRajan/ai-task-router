@@ -217,7 +217,7 @@ export default function GitHubAnalyzer() {
             stroke="currentColor"
             strokeWidth="4"
             fill="transparent"
-            className="text-slate-200 dark:text-slate-700"
+            className="text-[#404040]"
           />
           <circle
             cx={size / 2}
@@ -233,7 +233,7 @@ export default function GitHubAnalyzer() {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-semibold text-[#f4f4f4]">
             {Math.round(progress)}%
           </span>
         </div>
@@ -242,485 +242,507 @@ export default function GitHubAnalyzer() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Header */}
-        <motion.div 
-          className="flex items-center justify-between"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
+    <div className="min-h-screen bg-[#242422]">
+      <div className="container-bounded py-8 space-y-8">
+      {/* Header */}
+      <motion.div 
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="p-2 rounded-lg hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f4f4f4] transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-heading-1">Repository Intelligence</h1>
+            <p className="text-body-large text-[#a0a0a0]">
+              AI-powered team analysis and task optimization
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-800">
+            <div className="status-dot-online"></div>
+            <span className="text-sm font-medium text-emerald-300">AI Systems Active</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* URL Input */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="card p-8"
+      >
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+              <Github className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <h1 className="text-heading-1">Repository Intelligence</h1>
-              <p className="text-body-large text-slate-600 dark:text-slate-400">
-                AI-powered team analysis and task optimization
-              </p>
+              <h3 className="text-xl font-semibold text-[#f4f4f4]">GitHub Repository Analysis</h3>
+              <p className="text-[#a0a0a0]">Enter any public repository to extract team intelligence</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              <div className="status-dot-online"></div>
-              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">AI Systems Active</span>
+          <div className="flex space-x-4">
+            <div className="flex-1 relative">
+              <input
+                type="url"
+                placeholder="https://github.com/microsoft/vscode"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                className="input-primary w-full text-lg py-4"
+                disabled={isAnalyzing}
+              />
             </div>
+            <button
+              onClick={handleAnalyze}
+              disabled={!repoUrl || isAnalyzing || !dataUtils.validateGitHubUrl(repoUrl)}
+              className="btn-primary flex items-center px-8 py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAnalyzing ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Brain className="h-5 w-5 mr-3" />
+                  Analyze Repository
+                </>
+              )}
+            </button>
           </div>
-        </motion.div>
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-[#a0a0a0]">
+            Try: <button 
+                className="text-blue-400 hover:underline font-mono" 
+                onClick={() => setRepoUrl('https://github.com/microsoft/vscode')}
+              >
+                microsoft/vscode
+              </button>, <button 
+                className="text-blue-400 hover:underline font-mono"
+                onClick={() => setRepoUrl('https://github.com/facebook/react')}
+              >
+                facebook/react
+              </button>, or <button 
+                className="text-blue-400 hover:underline font-mono"
+                onClick={() => setRepoUrl('https://github.com/tensorflow/tensorflow')}
+              >
+                tensorflow/tensorflow
+              </button>
+            </p>
+          </div>
+        </div>
+      </motion.div>
 
-        {/* URL Input */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="card p-8"
-        >
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                <Github className="h-5 w-5 text-white" />
+      {/* Error Display */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="alert-danger"
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-red-500/20 rounded-lg mr-3">
+                <CheckCircle className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">GitHub Repository Analysis</h3>
-                <p className="text-slate-600 dark:text-slate-400">Enter any public repository to extract team intelligence</p>
+                <h4 className="font-semibold">Analysis Failed</h4>
+                <p className="text-sm mt-1">{error}</p>
               </div>
             </div>
-            
-            <div className="flex space-x-4">
-              <div className="flex-1 relative">
-                <input
-                  type="url"
-                  placeholder="https://github.com/microsoft/vscode"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  className="input-primary w-full text-lg py-4"
-                  disabled={isAnalyzing}
-                />
-              </div>
-              <button
-                onClick={handleAnalyze}
-                disabled={!repoUrl || isAnalyzing || !dataUtils.validateGitHubUrl(repoUrl)}
-                className="btn-primary flex items-center px-8 py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Brain className="h-5 w-5 mr-3" />
-                    Analyze Repository
-                  </>
-                )}
-              </button>
-            </div>
-            
-            <div className="mt-4 text-center">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-              Try: <button 
-                  className="text-blue-600 dark:text-blue-400 hover:underline font-mono" 
-                  onClick={() => setRepoUrl('https://github.com/microsoft/vscode')}
-                >
-                  microsoft/vscode
-                </button>, <button 
-                  className="text-blue-600 dark:text-blue-400 hover:underline font-mono"
-                  onClick={() => setRepoUrl('https://github.com/facebook/react')}
-                >
-                  facebook/react
-                </button>, or <button 
-                  className="text-blue-600 dark:text-blue-400 hover:underline font-mono"
-                  onClick={() => setRepoUrl('https://github.com/tensorflow/tensorflow')}
-                >
-                  tensorflow/tensorflow
-                </button>
-              </p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* Error Display */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="alert-danger"
-            >
-              <div className="flex items-center">
-                <div className="p-2 bg-red-500/20 rounded-lg mr-3">
-                  <CheckCircle className="h-5 w-5 text-red-500" />
+      {/* Analysis Progress */}
+      <AnimatePresence>
+        {isAnalyzing && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="card p-8 bg-gradient-to-br from-blue-900/20 to-purple-900/20"
+          >
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+                  <Brain className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h4 className="font-semibold">Analysis Failed</h4>
-                  <p className="text-sm mt-1">{error}</p>
+                  <h3 className="text-2xl font-bold text-[#f4f4f4]">AI Analysis in Progress</h3>
+                  <p className="text-[#a0a0a0]">Extracting team intelligence and optimizing task assignments</p>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
 
-        {/* Analysis Progress */}
-        <AnimatePresence>
-          {isAnalyzing && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="card p-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-800 dark:to-slate-700"
-            >
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center space-x-3 mb-4">
-                  <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                    <Brain className="h-6 w-6 text-white" />
+            <div className="space-y-6 max-w-4xl mx-auto">
+              {analysisSteps.map((step, index) => (
+                <motion.div
+                  key={step.id}
+                  className="flex items-center space-x-6"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <div className="flex-shrink-0">
+                    {step.status === 'completed' ? (
+                      <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-white" />
+                      </div>
+                    ) : step.status === 'running' ? (
+                      <ProgressRing progress={step.progress || 0} />
+                    ) : step.status === 'error' ? (
+                      <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-[#404040] rounded-full flex items-center justify-center">
+                        <span className="text-[#a0a0a0] font-bold">{index + 1}</span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">AI Analysis in Progress</h3>
-                    <p className="text-slate-600 dark:text-slate-400">Extracting team intelligence and optimizing task assignments</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 max-w-4xl mx-auto">
-                {analysisSteps.map((step, index) => (
-                  <motion.div
-                    key={step.id}
-                    className="flex items-center space-x-6"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                  >
-                    <div className="flex-shrink-0">
-                      {step.status === 'completed' ? (
-                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
-                          <CheckCircle className="h-6 w-6 text-white" />
-                        </div>
-                      ) : step.status === 'running' ? (
-                        <ProgressRing progress={step.progress || 0} />
-                      ) : step.status === 'error' ? (
-                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                          <CheckCircle className="h-6 w-6 text-white" />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
-                          <span className="text-slate-500 dark:text-slate-400 font-bold">{index + 1}</span>
-                        </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className={`font-semibold ${
+                        step.status === 'completed' ? 'text-emerald-400' :
+                        step.status === 'running' ? 'text-blue-400' :
+                        step.status === 'error' ? 'text-red-400' :
+                        'text-[#a0a0a0]'
+                      }`}>
+                        {step.name}
+                      </h4>
+                      {step.status === 'running' && (
+                        <span className="text-sm font-medium text-blue-400">
+                          {step.progress}%
+                        </span>
                       )}
                     </div>
+                    <p className="text-sm text-[#a0a0a0]">{step.description}</p>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className={`font-semibold ${
-                          step.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' :
-                          step.status === 'running' ? 'text-blue-600 dark:text-blue-400' :
-                          step.status === 'error' ? 'text-red-600 dark:text-red-400' :
-                          'text-slate-500 dark:text-slate-400'
-                        }`}>
-                          {step.name}
-                        </h4>
-                        {step.status === 'running' && (
-                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {step.progress}%
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{step.description}</p>
-                      
-                      {step.status === 'running' && (
-                        <div className="mt-3">
-                          <div className="progress-bar">
-                            <motion.div
-                              className="progress-fill-primary"
-                              initial={{ width: '0%' }}
-                              animate={{ width: `${step.progress}%` }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
+                    {step.status === 'running' && (
+                      <div className="mt-3">
+                        <div className="progress-bar">
+                          <motion.div
+                            className="progress-fill-primary"
+                            initial={{ width: '0%' }}
+                            animate={{ width: `${step.progress}%` }}
+                            transition={{ duration: 0.3 }}
+                          />
                         </div>
-                      )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Analysis Results */}
+      <AnimatePresence>
+        {analysisResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8"
+          >
+            {/* Repository Overview */}
+            <div className="card p-8">
+              <div className="flex items-start justify-between mb-8">
+                <div className="flex-1">
+                  <div className="flex items-center mb-4">
+                    <h2 className="text-3xl font-bold text-[#f4f4f4] mr-4">
+                      {analysisResult.repository.owner}/{analysisResult.repository.name}
+                    </h2>
+                    <button 
+                      onClick={() => window.open(`https://github.com/${analysisResult.repository.owner}/${analysisResult.repository.name}`, '_blank')}
+                      className="p-2 rounded-lg hover:bg-[#404040] text-[#a0a0a0] hover:text-blue-400 transition-colors"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <p className="text-lg text-[#a0a0a0] mb-6 leading-relaxed">
+                    {analysisResult.repository.description}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-6 text-[#a0a0a0]">
+                    <div className="flex items-center space-x-2">
+                      <Star className="h-4 w-4 text-amber-500" />
+                      <span className="font-medium">{analysisResult.repository.stars.toLocaleString()} stars</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Code className="h-4 w-4 text-blue-500" />
+                      <span className="font-medium">{analysisResult.repository.language}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-emerald-500" />
+                      <span className="font-medium">{analysisResult.repository.forks?.toLocaleString()} forks</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-purple-500" />
+                      <span className="font-medium">Updated {new Date(analysisResult.repository.updated_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="metric-card bg-blue-900/20 border-blue-800">
+                  <div className="metric-value text-blue-400">
+                    {analysisResult.team_metrics.total_developers}
+                  </div>
+                  <div className="metric-label text-blue-300">Active Developers</div>
+                  <div className="metric-description text-blue-400/70">Team members analyzed</div>
+                </div>
+                <div className="metric-card bg-emerald-900/20 border-emerald-800">
+                  <div className="metric-value text-emerald-400">
+                    {(analysisResult.team_metrics.avg_skill_level * 100).toFixed(0)}%
+                  </div>
+                  <div className="metric-label text-emerald-300">Avg Skill Level</div>
+                  <div className="metric-description text-emerald-400/70">Team expertise score</div>
+                </div>
+                <div className="metric-card bg-purple-900/20 border-purple-800">
+                  <div className="metric-value text-purple-400">
+                    {(analysisResult.team_metrics.collaboration_score * 100).toFixed(0)}%
+                  </div>
+                  <div className="metric-label text-purple-300">Collaboration</div>
+                  <div className="metric-description text-purple-400/70">Team synergy index</div>
+                </div>
+                <div className="metric-card bg-amber-900/20 border-amber-800">
+                  <div className="metric-value text-amber-400">
+                    {analysisResult.team_metrics.total_skills_identified}
+                  </div>
+                  <div className="metric-label text-amber-300">Skills Identified</div>
+                  <div className="metric-description text-amber-400/70">Unique capabilities</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Team Intelligence */}
+            <div className="card p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-[#f4f4f4]">Team Intelligence Analysis</h3>
+                    <p className="text-[#a0a0a0]">AI-powered developer skill assessment and learning insights</p>
+                  </div>
+                </div>
+                <button className="btn-secondary flex items-center">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Report
+                </button>
+              </div>
+
+              <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {prepareDeveloperProfiles().map((developer, index) => (
+                  <motion.div
+                    key={developer.username}
+                    className="card p-6 hover:shadow-lg transition-all duration-200"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                  >
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="avatar-md">
+                        {developer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-[#f4f4f4]">{developer.name}</h4>
+                        <p className="text-sm text-[#a0a0a0]">@{developer.username}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div className="text-center p-3 bg-[#404040] rounded-lg">
+                    <div className="font-bold text-white">{developer.commits.toLocaleString()}</div>
+                    <div className="text-[#a0a0a0]">Commits</div>
+                  </div>
+                  <div className="text-center p-3 bg-[#404040] rounded-lg">
+                    <div className="font-bold text-blue-400">{((developer.commits / prepareDeveloperProfiles().reduce((sum, d) => sum + d.commits, 0)) * 100).toFixed(1)}%</div>
+                    <div className="text-[#a0a0a0]">Contribution</div>
+                  </div>
+                        <div className="text-center p-3 bg-[#404040] rounded-lg">
+                          <div className="font-bold text-emerald-400">{(developer.skillLevel * 100).toFixed(0)}%</div>
+                          <div className="text-[#a0a0a0]">Expertise</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-[#f4f4f4]">Learning Velocity</span>
+                          <span className="text-sm font-bold text-blue-400">{(developer.learningVelocity * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill-primary" 
+                            style={{ width: `${developer.learningVelocity * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-[#f4f4f4]">Collaboration</span>
+                          <span className="text-sm font-bold text-purple-400">{(developer.collaborationScore * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div 
+                            className="bg-gradient-to-r from-purple-500 to-purple-600 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${developer.collaborationScore * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 className="text-sm font-semibold text-[#f4f4f4] mb-2">Top Skills</h5>
+                        <div className="flex flex-wrap gap-2">
+                          {developer.topSkills.map((skill) => (
+                            <span key={skill} className="badge-primary text-xs">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
 
-        {/* Analysis Results */}
-        <AnimatePresence>
-          {analysisResult && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-8"
-            >
-              {/* Repository Overview */}
-              <div className="card p-8">
-                <div className="flex items-start justify-between mb-8">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-4">
-                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white mr-4">
-                        {analysisResult.repository.owner}/{analysisResult.repository.name}
-                      </h2>
-                      <button 
-                        onClick={() => window.open(`https://github.com/${analysisResult.repository.owner}/${analysisResult.repository.name}`, '_blank')}
-                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                      >
-                        <ExternalLink className="h-5 w-5" />
-                      </button>
-                    </div>
-                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                      {analysisResult.repository.description}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-6 text-slate-500 dark:text-slate-400">
-                      <div className="flex items-center space-x-2">
-                        <Star className="h-4 w-4 text-amber-500" />
-                        <span className="font-medium">{analysisResult.repository.stars.toLocaleString()} stars</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Code className="h-4 w-4 text-blue-500" />
-                        <span className="font-medium">{analysisResult.repository.language}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-emerald-500" />
-                        <span className="font-medium">{analysisResult.repository.forks?.toLocaleString()} forks</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4 text-purple-500" />
-                        <span className="font-medium">Updated {new Date(analysisResult.repository.updated_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  </div>
+            {/* AI Insights & Recommendations */}
+            <div className="card p-8 bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-800">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                  <Sparkles className="h-6 w-6 text-white" />
                 </div>
-
-                {/* Key Metrics */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="metric-card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                    <div className="metric-value text-blue-600 dark:text-blue-400">
-                      {analysisResult.team_metrics.total_developers}
-                    </div>
-                    <div className="metric-label text-blue-700 dark:text-blue-300">Active Developers</div>
-                    <div className="metric-description text-blue-600/70 dark:text-blue-400/70">Team members analyzed</div>
-                  </div>
-                  <div className="metric-card bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
-                    <div className="metric-value text-emerald-600 dark:text-emerald-400">
-                      {(analysisResult.team_metrics.avg_skill_level * 100).toFixed(0)}%
-                    </div>
-                    <div className="metric-label text-emerald-700 dark:text-emerald-300">Avg Skill Level</div>
-                    <div className="metric-description text-emerald-600/70 dark:text-emerald-400/70">Team expertise score</div>
-                  </div>
-                  <div className="metric-card bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
-                    <div className="metric-value text-purple-600 dark:text-purple-400">
-                      {(analysisResult.team_metrics.collaboration_score * 100).toFixed(0)}%
-                    </div>
-                    <div className="metric-label text-purple-700 dark:text-purple-300">Collaboration</div>
-                    <div className="metric-description text-purple-600/70 dark:text-purple-400/70">Team synergy index</div>
-                  </div>
-                  <div className="metric-card bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-                    <div className="metric-value text-amber-600 dark:text-amber-400">
-                      {analysisResult.team_metrics.total_skills_identified}
-                    </div>
-                    <div className="metric-label text-amber-700 dark:text-amber-300">Skills Identified</div>
-                    <div className="metric-description text-amber-600/70 dark:text-amber-400/70">Unique capabilities</div>
-                  </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-[#f4f4f4]">AI Intelligence Insights</h3>
+                  <p className="text-[#a0a0a0]">Revolutionary analysis using 768-dimensional skill vectors and predictive modeling</p>
                 </div>
               </div>
 
-              {/* Team Intelligence */}
-              <div className="card p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl">
-                      <Users className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Team Intelligence Analysis</h3>
-                      <p className="text-slate-600 dark:text-slate-400">AI-powered developer skill assessment and learning insights</p>
-                    </div>
-                  </div>
-                  <button className="btn-secondary flex items-center">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Report
-                  </button>
-                </div>
-
-                <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {prepareDeveloperProfiles().map((developer, index) => (
-                    <motion.div
-                      key={developer.username}
-                      className="card p-6 hover:shadow-lg transition-all duration-200"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                      <div className="flex items-center space-x-3 mb-4">
-                        <div className="avatar-md">
-                          {developer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-slate-900 dark:text-white">{developer.name}</h4>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">@{developer.username}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div className="text-center p-3 bg-slate-700 rounded-lg">
-                      <div className="font-bold text-white">{developer.commits.toLocaleString()}</div>
-                      <div className="text-slate-400">Commits</div>
-                    </div>
-                    <div className="text-center p-3 bg-slate-700 rounded-lg">
-                      <div className="font-bold text-blue-400">{((developer.commits / prepareDeveloperProfiles().reduce((sum, d) => sum + d.commits, 0)) * 100).toFixed(1)}%</div>
-                      <div className="text-slate-400">Contribution</div>
-                    </div>
-                          <div className="text-center p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                            <div className="font-bold text-emerald-600 dark:text-emerald-400">{(developer.skillLevel * 100).toFixed(0)}%</div>
-                            <div className="text-slate-500 dark:text-slate-400">Expertise</div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Learning Velocity</span>
-                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{(developer.learningVelocity * 100).toFixed(0)}%</span>
-                          </div>
-                          <div className="progress-bar">
-                            <div 
-                              className="progress-fill-primary" 
-                              style={{ width: `${developer.learningVelocity * 100}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Collaboration</span>
-                            <span className="text-sm font-bold text-purple-600 dark:text-purple-400">{(developer.collaborationScore * 100).toFixed(0)}%</span>
-                          </div>
-                          <div className="progress-bar">
-                            <div 
-                              className="bg-gradient-to-r from-purple-500 to-purple-600 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${developer.collaborationScore * 100}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Top Skills</h5>
-                          <div className="flex flex-wrap gap-2">
-                            {developer.topSkills.map((skill) => (
-                              <span key={skill} className="badge-primary text-xs">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* AI Insights & Recommendations */}
-              <div className="card p-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-800 dark:to-slate-700 border-purple-200 dark:border-slate-600">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-                    <Sparkles className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">AI Intelligence Insights</h3>
-                    <p className="text-slate-600 dark:text-slate-400">Revolutionary analysis using 768-dimensional skill vectors and predictive modeling</p>
-                  </div>
-                </div>
-
-                <div className="grid lg:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Key Findings</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-start space-x-3 p-4 bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-slate-600">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2"></div>
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-white">High-performing team with 87% average skill level</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Team demonstrates strong technical capabilities across multiple domains</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3 p-4 bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-slate-600">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-white">Strong collaboration patterns identified</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Team shows excellent cross-functional communication and knowledge sharing</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3 p-4 bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-slate-600">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-white">High learning velocity across team members</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Team demonstrates strong capacity for skill development and adaptation</p>
-                        </div>
+              <div className="grid lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-[#f4f4f4]">Key Findings</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3 p-4 bg-[#2a2a28] rounded-lg border border-purple-800">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2"></div>
+                      <div>
+                        <p className="font-medium text-[#f4f4f4]">High-performing team with {(analysisResult.team_metrics.avg_skill_level * 100).toFixed(0)}% average skill level</p>
+                        <p className="text-sm text-[#a0a0a0] mt-1">Team demonstrates strong technical capabilities across multiple domains</p>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white">AI Recommendations</h4>
-                    <div className="space-y-3">
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <h5 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">Optimal Task Assignment</h5>
-                        <p className="text-sm text-blue-700 dark:text-blue-400">AI suggests focusing complex architecture tasks on developers with highest system design skills for 23% better outcomes.</p>
+                    <div className="flex items-start space-x-3 p-4 bg-[#2a2a28] rounded-lg border border-purple-800">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      <div>
+                        <p className="font-medium text-[#f4f4f4]">
+                          {analysisResult.team_metrics.collaboration_score > 0.7 ? 'Strong collaboration patterns identified' : 
+                           analysisResult.team_metrics.collaboration_score > 0.4 ? 'Moderate collaboration patterns detected' :
+                           'Limited collaboration patterns observed'}
+                        </p>
+                        <p className="text-sm text-[#a0a0a0] mt-1">
+                          {analysisResult.team_metrics.collaboration_score > 0.7 ? 'Team shows excellent cross-functional communication and knowledge sharing' :
+                           analysisResult.team_metrics.collaboration_score > 0.4 ? 'Team demonstrates decent coordination with room for improvement' :
+                           'Individual contributors working independently - collaboration opportunities exist'}
+                        </p>
                       </div>
-                      <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <h5 className="font-semibold text-emerald-900 dark:text-emerald-300 mb-2">Learning Opportunities</h5>
-                        <p className="text-sm text-emerald-700 dark:text-emerald-400">Cross-training in DevOps and security practices could improve team coverage by 15% in underrepresented areas.</p>
-                      </div>
-                      <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <h5 className="font-semibold text-purple-900 dark:text-purple-300 mb-2">Productivity Enhancement</h5>
-                        <p className="text-sm text-purple-700 dark:text-purple-400">Implementing AI-driven task routing could increase team productivity by 34% based on current skill distribution patterns.</p>
+                    </div>
+                    <div className="flex items-start space-x-3 p-4 bg-[#2a2a28] rounded-lg border border-purple-800">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                      <div>
+                        <p className="font-medium text-[#f4f4f4]">
+                          {analysisResult.team_metrics.avg_learning_velocity > 0.6 ? 'High learning velocity across team members' :
+                           analysisResult.team_metrics.avg_learning_velocity > 0.3 ? 'Moderate learning velocity detected' :
+                           'Steady learning patterns identified'}
+                        </p>
+                        <p className="text-sm text-[#a0a0a0] mt-1">
+                          Team demonstrates {analysisResult.team_metrics.avg_learning_velocity > 0.6 ? 'strong' : 'steady'} capacity for skill development and adaptation
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Success Summary */}
-              <div className="card p-8 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border-emerald-200 dark:border-slate-600">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-xl">
-                      <CheckCircle className="h-8 w-8 text-white" />
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-[#f4f4f4]">AI Recommendations</h4>
+                  <div className="space-y-3">
+                    <div className="p-4 bg-blue-900/20 rounded-lg border border-blue-800">
+                      <h5 className="font-semibold text-blue-300 mb-2">Optimal Task Assignment</h5>
+                      <p className="text-sm text-blue-400">
+                        AI suggests focusing complex architecture tasks on developers with highest system design skills for 
+                        {analysisResult.team_metrics.total_developers > 5 ? ' 23%' : ' 15%'} better outcomes.
+                      </p>
                     </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Analysis Complete</h3>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        Revolutionary AI processing completed in {(analysisResult.analysis_time_ms / 1000).toFixed(1)} seconds
+                    <div className="p-4 bg-emerald-900/20 rounded-lg border border-emerald-800">
+                      <h5 className="font-semibold text-emerald-300 mb-2">Learning Opportunities</h5>
+                      <p className="text-sm text-emerald-400">
+                        Cross-training in {analysisResult.repository.language === 'TypeScript' ? 'DevOps and security' : 'testing and deployment'} practices could improve team coverage by 
+                        {analysisResult.team_metrics.skill_diversity < 0.5 ? ' 20%' : ' 15%'} in underrepresented areas.
+                      </p>
+                    </div>
+                    <div className="p-4 bg-purple-900/20 rounded-lg border border-purple-800">
+                      <h5 className="font-semibold text-purple-300 mb-2">Productivity Enhancement</h5>
+                      <p className="text-sm text-purple-400">
+                        Implementing AI-driven task routing could increase team productivity by {Math.round(analysisResult.team_metrics.avg_skill_level * 40)}% based on current skill distribution patterns.
                       </p>
                     </div>
                   </div>
-                  <div className="flex space-x-3">
-                    <button 
-                      onClick={() => router.push('/dashboard')}
-                      className="btn-secondary"
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      View Dashboard
-                    </button>
-                    <button className="btn-primary">
-                      <Zap className="h-4 w-4 mr-2" />
-                      Apply Optimizations
-                    </button>
-                  </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+
+            {/* Success Summary */}
+            <div className="card p-8 bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-emerald-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-xl">
+                    <CheckCircle className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-[#f4f4f4]">Analysis Complete</h3>
+                    <p className="text-[#a0a0a0]">
+                      Revolutionary AI processing completed in {(analysisResult.analysis_time_ms / 1000).toFixed(1)} seconds
+                    </p>
+                  </div>
+                </div>
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => router.push('/dashboard')}
+                    className="btn-secondary"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    View Dashboard
+                  </button>
+                  <button className="btn-primary">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Apply Optimizations
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
     </div>
   );
