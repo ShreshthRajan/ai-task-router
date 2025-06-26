@@ -63,7 +63,16 @@ trap cleanup SIGINT SIGTERM
 print_info "Checking prerequisites..."
 
 if ! command -v node &> /dev/null; then
-    print_error "Node.js is not installed. Please install Node.js 16+ first."
+    print_error "Node.js is not installed. Please install Node.js 18+ first."
+    exit 1
+fi
+
+# Check Node.js version
+NODE_VERSION=$(node --version | cut -d'v' -f2)
+NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
+if [ "$NODE_MAJOR" -lt 18 ]; then
+    print_error "Node.js version $NODE_VERSION detected. Next.js requires Node.js 18.17.0 or higher."
+    print_error "Please update Node.js: nvm install 18 && nvm use 18"
     exit 1
 fi
 
@@ -83,15 +92,14 @@ print_status "Prerequisites check passed"
 # Backend Setup
 print_info "Setting up backend..."
 
-# Check if Python virtual environment exists
-if [ ! -d "venv" ]; then
+if [ ! -d "venv_clean" ]; then
     print_info "Creating Python virtual environment..."
-    python3 -m venv venv
+    python3 -m venv venv_clean
 fi
 
 # Activate virtual environment
 print_info "Activating Python virtual environment..."
-source venv/bin/activate
+source venv_clean/bin/activate
 
 # Install Python dependencies
 print_info "Installing backend dependencies..."

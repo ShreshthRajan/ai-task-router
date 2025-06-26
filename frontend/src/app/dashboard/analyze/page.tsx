@@ -152,10 +152,41 @@ export default function GitHubAnalyzer() {
 
         const response = await githubApi.analyzeRepository(request);
         console.log('✅ Real backend API call successful');
-        setAnalysisResult(response.data as ExtendedAnalysisResult);
+        // Transform the flat backend response to the nested UI structure
+        const transformedResult: ExtendedAnalysisResult = {
+          repository: response.data.repository,
+          team_analysis: {
+            developers: response.data.developers || [],
+            metrics: response.data.team_metrics || {}
+          },
+          task_analysis: {
+            tasks: response.data.tasks || [],
+            complexity_distribution: calculateComplexityDistribution(response.data.tasks || [])
+          },
+          analysis_metadata: {
+            analysis_time_ms: response.data.analysis_time_ms || 0,
+            confidence_score: 0.85,
+            commits_analyzed: 0,
+            files_analyzed: 0,
+            analysis_timestamp: new Date().toISOString()
+          }
+        };
+
+        console.log('📊 Transformed analysis result:', transformedResult);
+        setAnalysisResult(transformedResult);
         
       } catch (apiError: unknown) {
         console.error('❌ Backend API call failed:', apiError);
+        console.error('❌ Full error details:', JSON.stringify(apiError, null, 2));
+        
+        // Also log the request that failed
+        console.error('❌ Failed request was:', {
+          url: 'http://localhost:8000/api/v1/github/analyze-repository',
+          repoUrl: repoUrl,
+          analyzeTeam: true,
+          daysBack: 90
+        });
+        
         const errorMessage = apiError instanceof Error ? apiError.message : 'Backend service unavailable';
         throw new Error(`Repository analysis failed: ${errorMessage}`);
       }

@@ -1,61 +1,54 @@
-# requirements.txt
+# Core FastAPI
 fastapi==0.104.1
 uvicorn==0.24.0
-transformers==4.36.0
-torch==2.1.0
-sentence-transformers==2.2.2
+
+# AI/ML Core - COMPATIBLE VERSIONS
+torch==2.1.2
+transformers==4.41.2
+sentence-transformers==3.0.1
 scikit-learn==1.3.2
+
+# Database & Core
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 redis==5.0.1
 pydantic==2.5.0
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
+
+# Data Processing
 pandas==2.1.3
 numpy==1.25.2
+scipy==1.11.4
 
-plotly==5.17.0
+# NLP & Processing
 spacy==3.7.2
-tree-sitter==0.20.4
+
+# GitHub Integration
 pygithub==2.1.1
 requests==2.31.0
 aiohttp==3.9.1
+
+# Testing
 pytest==7.4.4
-
 pytest-asyncio==0.21.1
-
-# Test dependencies
 httpx==0.25.2
 email-validator==2.1.0
 
-#phase 3
-scipy==1.11.4
+# Phase 3 Dependencies
 pymoo==0.6.1
 deap==1.4.1
 networkx==3.2
 ortools==9.8.3296
 
-#phase 4
-scikit-learn==1.3.2          
-joblib==1.3.2                
-
-#dashboard 
-
-plotly==5.17.0
-streamlit-option-menu==0.3.6
-
-
-# Enhanced Phase 4 dependencies
+# Phase 4 Dependencies
 joblib==1.3.2
 
-# Production deployment
+# Visualization
+plotly==5.17.0
+
+# Production
 gunicorn==21.2.0
-
-# HTTP Client enhancements
-aiohttp==3.9.1
-httpx==0.25.2
-
-# Utilities
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
@@ -65,8 +58,4 @@ black==23.11.0
 flake8==6.1.0
 mypy==1.7.1
 
-# Enhanced Phase 4 dependencies
-joblib==1.3.2
-
-# Production deployment
-gunicorn==21.2.0
+tree-sitter==0.20.4 
