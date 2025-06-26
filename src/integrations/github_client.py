@@ -23,23 +23,30 @@ class GitHubClient:
     async def get_developer_data(self, username: str, days_back: int = 180) -> Dict:
         """Fetch comprehensive developer data from GitHub."""
         
+        print(f"🔍 DEBUG: Fetching developer data for {username}")
+        
         async with aiohttp.ClientSession(headers=self.headers) as session:
             # Get basic user info
             user_info = await self._get_user_info(session, username)
+            print(f"🔍 DEBUG: User info for {username}: {user_info}")
             
             # Get repositories
             repos = await self._get_user_repositories(session, username)
+            print(f"🔍 DEBUG: Repositories for {username}: {len(repos)} found")
             
             # Get commits across repositories
             commits = await self._get_user_commits(session, username, repos, days_back)
+            print(f"🔍 DEBUG: Commits for {username}: {len(commits)} found")
             
             # Get pull requests and reviews
             pr_data = await self._get_pull_request_data(session, username, repos, days_back)
+            print(f"🔍 DEBUG: PR data for {username}: {len(pr_data.get('reviews', []))} reviews, {len(pr_data.get('descriptions', []))} descriptions")
             
             # Get issue comments
             issue_comments = await self._get_issue_comments(session, username, repos, days_back)
+            print(f"🔍 DEBUG: Issue comments for {username}: {len(issue_comments)} found")
             
-            return {
+            result = {
                 "developer_id": username,
                 "github_username": username,
                 "name": user_info.get("name"),
@@ -51,6 +58,13 @@ class GitHubClient:
                 "discussions": [],  # GitHub Discussions API requires separate implementation
                 "commit_messages": [commit.get("message", "") for commit in commits]
             }
+            
+            print(f"🔍 DEBUG: Final developer data summary for {username}:")
+            print(f"  - Commits: {len(result['commits'])}")
+            print(f"  - PR Reviews: {len(result['pr_reviews'])}")
+            print(f"  - Issue Comments: {len(result['issue_comments'])}")
+            
+            return result
     
     async def _get_user_info(self, session: aiohttp.ClientSession, username: str) -> Dict:
         """Get basic user information."""
@@ -499,8 +513,12 @@ class GitHubClient:
                 return []
     
     async def get_repository_contributors(self, owner: str, repo: str, 
-                                    max_contributors: int = 30) -> List[Dict]:
+                                max_contributors: int = 30) -> List[Dict]:
         """Get repository contributors."""
+        
+        print(f"🔍 DEBUG: Fetching contributors for {owner}/{repo}")
+        print(f"🔍 DEBUG: GitHub token configured: {bool(settings.GITHUB_TOKEN)}")
+        print(f"🔍 DEBUG: Headers: {self.headers}")
         
         async with aiohttp.ClientSession(headers=self.headers) as session:
             try:
@@ -510,13 +528,25 @@ class GitHubClient:
                     "anon": "false"
                 }
                 
+                print(f"🔍 DEBUG: Making request to: {url}")
+                print(f"🔍 DEBUG: Params: {params}")
+                
                 async with session.get(url, params=params) as response:
+                    print(f"🔍 DEBUG: Response status: {response.status}")
+                    print(f"🔍 DEBUG: Response headers: {dict(response.headers)}")
+                    print(f"🔍 DEBUG: Rate limit remaining: {response.headers.get('X-RateLimit-Remaining')}")
+                    
                     if response.status == 200:
-                        return await response.json()
+                        contributors = await response.json()
+                        print(f"🔍 DEBUG: Contributors found: {len(contributors)}")
+                        if contributors:
+                            print(f"🔍 DEBUG: First contributor sample: {contributors[0]}")
+                        return contributors
                     else:
-                        print(f"Error fetching contributors: {response.status}")
+                        error_text = await response.text()
+                        print(f"🔍 DEBUG: Error response: {error_text}")
                         return []
                         
             except Exception as e:
-                print(f"Error fetching contributors: {e}")
+                print(f"🔍 DEBUG: Exception in get_repository_contributors: {e}")
                 return []

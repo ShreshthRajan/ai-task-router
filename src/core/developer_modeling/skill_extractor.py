@@ -79,47 +79,75 @@ class SkillExtractor:
         }
     
     def extract_comprehensive_profile(self, 
-                                    developer_data: Dict,
-                                    time_window_days: int = 180) -> DeveloperProfile:
+                                developer_data: Dict,
+                                time_window_days: int = 180) -> DeveloperProfile:
         """Extract complete developer profile from multiple data sources."""
         
+        print(f"🔍 DEBUG: Starting profile extraction for {developer_data.get('developer_id', 'unknown')}")
+        print(f"🔍 DEBUG: Input data summary:")
+        print(f"  - Commits: {len(developer_data.get('commits', []))}")
+        print(f"  - PR Reviews: {len(developer_data.get('pr_reviews', []))}")
+        print(f"  - Issue Comments: {len(developer_data.get('issue_comments', []))}")
+        print(f"  - Commit Messages: {len(developer_data.get('commit_messages', []))}")
+        print(f"  - PR Descriptions: {len(developer_data.get('pr_descriptions', []))}")
+        
         # Extract code-based skills
+        print(f"🔍 DEBUG: Extracting code skills...")
         code_skills = self._extract_code_skills(
             developer_data.get('commits', []),
             time_window_days
         )
+        print(f"🔍 DEBUG: Code skills extracted: {code_skills}")
         
         # Extract collaboration-based skills
+        print(f"🔍 DEBUG: Analyzing collaboration patterns...")
         collaboration_analysis = self._analyze_collaboration_patterns(
             developer_data.get('pr_reviews', []),
             developer_data.get('issue_comments', []),
             developer_data.get('discussions', [])
         )
+        print(f"🔍 DEBUG: Collaboration analysis:")
+        print(f"  - interaction_quality: {collaboration_analysis.interaction_quality}")
+        print(f"  - knowledge_sharing_frequency: {collaboration_analysis.knowledge_sharing_frequency}")
+        print(f"  - technical_leadership: {collaboration_analysis.technical_leadership}")
+        print(f"  - communication_effectiveness: {collaboration_analysis.communication_effectiveness}")
+        print(f"  - team_influence: {collaboration_analysis.team_influence}")
         
         # Extract domain knowledge from text
+        print(f"🔍 DEBUG: Extracting domain knowledge...")
         domain_knowledge = self._extract_domain_knowledge(
             developer_data.get('issue_comments', []),
             developer_data.get('pr_descriptions', []),
             developer_data.get('commit_messages', [])
         )
+        print(f"🔍 DEBUG: Domain knowledge: {domain_knowledge}")
         
         # Calculate learning velocity
+        print(f"🔍 DEBUG: Calculating learning velocity...")
         learning_velocity = self._calculate_learning_velocity(
             developer_data.get('commits', []),
             time_window_days
         )
+        print(f"🔍 DEBUG: Learning velocity: {learning_velocity}")
         
         # Generate unified skill vector
+        print(f"🔍 DEBUG: Generating skill vector...")
         skill_vector = self._generate_skill_vector(
             code_skills, domain_knowledge, collaboration_analysis
         )
+        print(f"🔍 DEBUG: Skill vector shape: {skill_vector.shape}")
+        print(f"🔍 DEBUG: Skill vector non-zero elements: {np.count_nonzero(skill_vector)}")
         
         # Calculate confidence scores
+        print(f"🔍 DEBUG: Calculating confidence scores...")
         confidence_scores = self._calculate_confidence_scores(
             code_skills, collaboration_analysis, developer_data
         )
+        print(f"🔍 DEBUG: Confidence scores: {confidence_scores}")
         
-        return DeveloperProfile(
+        # Create final profile
+        print(f"🔍 DEBUG: Creating final developer profile...")
+        profile = DeveloperProfile(
             developer_id=developer_data['developer_id'],
             skill_vector=skill_vector,
             programming_languages=code_skills.get('programming_languages', {}),
@@ -129,36 +157,72 @@ class SkillExtractor:
             confidence_scores=confidence_scores,
             last_updated=datetime.utcnow()
         )
+        
+        print(f"🔍 DEBUG: Profile creation complete for {developer_data.get('developer_id', 'unknown')}")
+        print(f"🔍 DEBUG: Final profile summary:")
+        print(f"  - Programming languages: {len(profile.programming_languages)} found")
+        print(f"  - Domain expertise areas: {len(profile.domain_expertise)} found")
+        print(f"  - Collaboration score: {profile.collaboration_score}")
+        print(f"  - Learning velocity: {profile.learning_velocity}")
+        print(f"  - Overall confidence: {profile.confidence_scores.get('overall', 0.0)}")
+        
+        return profile
     
     def _extract_code_skills(self, commits: List[Dict], time_window_days: int) -> Dict:
         """Extract skills from code commit analysis."""
         
+        print(f"🔍 DEBUG: _extract_code_skills called with {len(commits)} commits")
+        
         # Filter recent commits
         cutoff_date = datetime.utcnow() - timedelta(days=time_window_days)
-        recent_commits = [
-            commit for commit in commits
-            if datetime.fromisoformat(commit.get('timestamp', '2020-01-01')) > cutoff_date
-        ]
+        print(f"🔍 DEBUG: Cutoff date: {cutoff_date}")
+        
+        recent_commits = []
+        for commit in commits:
+            timestamp_str = commit.get('timestamp', '2020-01-01')
+            try:
+                # Handle different timestamp formats
+                if timestamp_str.endswith('Z'):
+                    timestamp_str = timestamp_str[:-1] + '+00:00'
+                commit_date = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                if commit_date > cutoff_date:
+                    recent_commits.append(commit)
+            except Exception as e:
+                print(f"🔍 DEBUG: Error parsing timestamp '{timestamp_str}': {e}")
+                continue
+        
+        print(f"🔍 DEBUG: Recent commits after filtering: {len(recent_commits)}")
         
         if not recent_commits:
+            print(f"🔍 DEBUG: No recent commits found, returning empty skills")
             return {}
         
         # Analyze each commit
         code_analyses = []
-        for commit in recent_commits:
+        for i, commit in enumerate(recent_commits):
             try:
+                print(f"🔍 DEBUG: Analyzing commit {i+1}/{len(recent_commits)}: {commit.get('hash', 'unknown')}")
+                print(f"🔍 DEBUG: Commit files: {len(commit.get('files', []))}")
+                
                 analysis = self.code_analyzer.analyze_commit(
                     commit.get('files', []),
                     commit
                 )
                 code_analyses.append(analysis)
+                print(f"🔍 DEBUG: Commit analysis complete - complexity: {analysis.complexity_score}")
+                
             except Exception as e:
-                print(f"Error analyzing commit {commit.get('hash', 'unknown')}: {e}")
+                print(f"🔍 DEBUG: Error analyzing commit {commit.get('hash', 'unknown')}: {e}")
                 continue
         
+        print(f"🔍 DEBUG: Total successful commit analyses: {len(code_analyses)}")
+        
         # Extract skills from analyses
-        return self.code_analyzer.extract_developer_skills(code_analyses, time_window_days)
-    
+        skills = self.code_analyzer.extract_developer_skills(code_analyses, time_window_days)
+        print(f"🔍 DEBUG: Final extracted skills: {skills}")
+        
+        return skills
+        
     def _analyze_collaboration_patterns(self, 
                                       pr_reviews: List[Dict],
                                       issue_comments: List[Dict],

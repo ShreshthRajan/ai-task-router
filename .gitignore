@@ -25,6 +25,7 @@ MANIFEST
 venv/
 env/
 ENV/
+venv_clean/
 
 # Environment variables
 .env

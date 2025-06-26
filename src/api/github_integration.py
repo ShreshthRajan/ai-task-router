@@ -12,6 +12,7 @@ import asyncio
 import re
 from datetime import datetime
 import aiohttp  
+from config import settings
 
 from models.database import get_db, Developer, Task, TaskComplexityAnalysis
 from models.schemas import (
@@ -25,6 +26,34 @@ from core.task_analysis.complexity_predictor import ComplexityPredictor
 from core.assignment_engine.optimizer import AssignmentOptimizer
 
 router = APIRouter(prefix="/api/v1/github", tags=["github"])
+
+
+def get_github_client():
+    global github_client
+    if github_client is None:
+        github_client = GitHubClient()
+    return github_client
+
+def get_skill_extractor():
+    global skill_extractor
+    if skill_extractor is None:
+        from core.developer_modeling.skill_extractor import SkillExtractor
+        skill_extractor = SkillExtractor()
+    return skill_extractor
+
+def get_code_analyzer():
+    global code_analyzer
+    if code_analyzer is None:
+        from core.developer_modeling.code_analyzer import CodeAnalyzer
+        code_analyzer = CodeAnalyzer()
+    return code_analyzer
+
+def get_complexity_predictor():
+    global complexity_predictor
+    if complexity_predictor is None:
+        from core.task_analysis.complexity_predictor import ComplexityPredictor
+        complexity_predictor = ComplexityPredictor()
+    return complexity_predictor
 
 # ===== PYDANTIC SCHEMAS =====
 class GitHubRepoRequest(BaseModel):
@@ -146,7 +175,7 @@ async def get_repository_info(owner: str, repo: str) -> Dict[str, Any]:
     """Get basic repository information from GitHub."""
     try:
         # Use real GitHub API to get repo info
-        async with aiohttp.ClientSession(headers=github_client.headers) as session:
+        async with aiohttp.ClientSession(headers=get_github_client().headers) as session:
             url = f"{github_client.base_url}/repos/{owner}/{repo}"
             async with session.get(url) as response:
                 if response.status == 200:
@@ -367,7 +396,7 @@ async def extract_team_from_repo_internal(
     """Internal function to extract team members using real Phase 1 components."""
     try:
         # Get real contributor data from GitHub
-        contributors = await github_client.get_repository_contributors(owner, repo)
+        contributors = await get_github_client().get_repository_contributors(owner, repo)
         team_members_data = []
         
         for i, contributor in enumerate(contributors[:10]):  # Limit to top 10 contributors
@@ -377,8 +406,8 @@ async def extract_team_from_repo_internal(
                 
             try:
                 # Use real Phase 1 components
-                developer_data = await github_client.get_developer_data(username, days_back)
-                profile = skill_extractor.extract_comprehensive_profile(developer_data, days_back)
+                developer_data = await get_github_client().get_developer_data(username, days_back)
+                profile = get_skill_extractor().extract_comprehensive_profile(developer_data, days_back)
                 
                 # Convert to expected format
                 member_data = {
@@ -427,7 +456,7 @@ async def extract_tasks_from_repo_internal(
     """Internal function to extract tasks using real Phase 2 components."""
     try:
         # Get real issues from GitHub
-        issues = await github_client.get_repository_issues(owner, repo, max_issues=20)
+        issues = await get_github_client().get_repository_issues(owner, repo, max_issues=20)
         tasks_data = []
         
         for i, issue in enumerate(issues):
@@ -441,7 +470,7 @@ async def extract_tasks_from_repo_internal(
                     'repository': f"{owner}/{repo}"
                 }
                 
-                complexity_result = await complexity_predictor.predict_task_complexity(task_input)
+                complexity_result = await get_complexity_predictor().predict_task_complexity(task_input)
                 
                 # Convert to expected format
                 task_data = {
@@ -553,6 +582,82 @@ def calculate_team_metrics(developers: List[Dict], tasks: List[Dict]) -> Dict[st
         "expertise_coverage": expertise_coverage,
         "team_strength_score": round(team_strength, 3)
     }
+
+@router.get("/debug/github/{owner}/{repo}")
+async def debug_github_data(owner: str, repo: str):
+    """Debug endpoint to test GitHub API connectivity and data flow."""
+    debug_info = {
+        "github_token_configured": bool(settings.GITHUB_TOKEN),
+        "github_token_prefix": settings.GITHUB_TOKEN[:10] + "..." if settings.GITHUB_TOKEN else "None",
+        "test_results": {}
+    }
+    
+    try:
+        # Test 1: Basic repo access
+        print(f"🔍 DEBUG: Testing basic repo access for {owner}/{repo}")
+        async with aiohttp.ClientSession(headers=get_github_client().headers) as session:
+            url = f"{github_client.base_url}/repos/{owner}/{repo}"
+            async with session.get(url) as response:
+                debug_info["test_results"]["repo_access"] = {
+                    "status": response.status,
+                    "headers": dict(response.headers),
+                    "rate_limit_remaining": response.headers.get('X-RateLimit-Remaining'),
+                    "rate_limit_limit": response.headers.get('X-RateLimit-Limit')
+                }
+                if response.status == 200:
+                    repo_data = await response.json()
+                    debug_info["test_results"]["repo_data_sample"] = {
+                        "name": repo_data.get("name"),
+                        "stars": repo_data.get("stargazers_count"),
+                        "language": repo_data.get("language")
+                    }
+                else:
+                    error_text = await response.text()
+                    debug_info["test_results"]["repo_error"] = error_text
+        
+        # Test 2: Contributors access
+        print(f"🔍 DEBUG: Testing contributors access")
+        contributors = await get_github_client().get_repository_contributors(owner, repo, max_contributors=5)
+        debug_info["test_results"]["contributors"] = {
+            "count": len(contributors) if contributors else 0,
+            "sample_data": contributors[:2] if contributors else [],
+            "first_contributor": contributors[0] if contributors else None
+        }
+        
+        # Test 3: Individual developer data
+        if contributors:
+            first_contributor = contributors[0]
+            username = first_contributor.get('login')
+            print(f"🔍 DEBUG: Testing individual developer data for {username}")
+            
+            developer_data = await github_client.get_developer_data(username, days_back=30)
+            debug_info["test_results"]["developer_data"] = {
+                "username": username,
+                "commits_count": len(developer_data.get('commits', [])),
+                "pr_reviews_count": len(developer_data.get('pr_reviews', [])),
+                "issue_comments_count": len(developer_data.get('issue_comments', [])),
+                "sample_commit": developer_data.get('commits', [{}])[0] if developer_data.get('commits') else None
+            }
+            
+            # Test 4: Skill extraction
+            print(f"🔍 DEBUG: Testing skill extraction for {username}")
+            try:
+                profile = skill_extractor.extract_comprehensive_profile(developer_data, 30)
+                debug_info["test_results"]["skill_extraction"] = {
+                    "programming_languages": dict(profile.programming_languages),
+                    "domain_expertise": dict(profile.domain_expertise),
+                    "collaboration_score": profile.collaboration_score,
+                    "learning_velocity": profile.learning_velocity,
+                    "confidence_scores": dict(profile.confidence_scores)
+                }
+            except Exception as e:
+                debug_info["test_results"]["skill_extraction_error"] = str(e)
+        
+        return debug_info
+        
+    except Exception as e:
+        debug_info["error"] = str(e)
+        return debug_info
 
 @router.get("/analysis-status/{analysis_id}", response_model=LiveAnalysisStatus)
 async def get_analysis_status(analysis_id: str):
