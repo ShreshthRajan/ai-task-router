@@ -40,7 +40,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${inter.className} antialiased bg-slate-900 text-slate-100 dark`}>
+      <body className={`${inter.className} antialiased bg-[#242422] text-[#f4f4f4] dark`} style={{ fontFamily: 'Inter, sans-serif' }}>
         {children}
       </body>
     </html>

@@ -5,19 +5,36 @@
 
 @layer base {
   :root {
-    --claude-orange: #e09142;
-    --claude-orange-light: #f4dab8;
-    --claude-orange-dark: #b86530;
+    --claude-bg: #242422;
+    --claude-surface: #2a2a28;
+    --claude-border: #404040;
+    --claude-text: #f4f4f4;
+    --claude-text-muted: #a0a0a0;
+    --claude-accent: #ff7c43;
   }
 
   html {
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-    scroll-behavior: smooth;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
   }
   
   body {
+    @apply bg-[#242422] text-[#f4f4f4] antialiased;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: subpixel-antialiasing;
+    text-rendering: optimizeLegibility;
   }
+  
+  .bg-claude-bg { background-color: var(--claude-bg); }
+  .bg-claude-surface { background-color: var(--claude-surface); }
+  .border-claude { border-color: var(--claude-border); }
+  .text-claude { color: var(--claude-text); }
+  .text-claude-muted { color: var(--claude-text-muted); }
+  .text-claude-accent { color: var(--claude-accent); }
   
   .dark {
     color-scheme: dark;

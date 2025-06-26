@@ -1,4 +1,3 @@
-# start-fullstack.sh
 #!/bin/bash
 
 # AI Task Router - Full Stack Startup Script
@@ -42,46 +41,124 @@ cleanup() {
     if [ ! -z "$BACKEND_PID" ]; then
         kill $BACKEND_PID 2>/dev/null
     fi
-    
+
     # Kill frontend process
     if [ ! -z "$FRONTEND_PID" ]; then
         kill $FRONTEND_PID 2>/dev/null
     fi
-    
-    # Kill any remaining processes
+
     pkill -f "uvicorn.*main:app" 2>/dev/null
     pkill -f "next dev" 2>/dev/null
-    
+
     print_status "All servers stopped"
     exit 0
 }
 
-# Set up signal handlers
 trap cleanup SIGINT SIGTERM
 
-# Check prerequisites
-print_info "Checking prerequisites..."
+# Enhanced Node.js version management
+setup_node() {
+    print_info "Setting up Node.js environment..."
+    
+    # Try to use NVM if available
+    export NVM_DIR="$HOME/.nvm"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        print_info "Loading NVM..."
+        \. "$NVM_DIR/nvm.sh"
+        \. "$NVM_DIR/bash_completion" 2>/dev/null
+        
+        # Check if Node 18 is installed via NVM
+        if nvm ls 18 &>/dev/null; then
+            print_info "Using Node 18 via NVM..."
+            nvm use 18 &>/dev/null
+        else
+            print_warning "Node 18 not found in NVM, attempting to install..."
+            nvm install 18 &>/dev/null
+            nvm use 18 &>/dev/null
+        fi
+    fi
+    
+    # Verify Node version
+    NODE_BIN="$(command -v node)"
+    NPM_BIN="$(command -v npm)"
+    
+    if [ -z "$NODE_BIN" ]; then
+        print_error "Node.js is not installed. Please install Node.js 18+ first."
+        print_info "You can install it via:"
+        print_info "- NVM: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash"
+        print_info "- Direct: https://nodejs.org/en/download/"
+        exit 1
+    fi
+    
+    NODE_VERSION=$($NODE_BIN --version | cut -d'v' -f2)
+    NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
+    
+    if [ "$NODE_MAJOR" -lt 18 ]; then
+        print_error "Node.js version $NODE_VERSION detected. Node 18+ is required."
+        print_info "Current Node path: $NODE_BIN"
+        
+        # Try alternative approaches
+        print_info "Attempting to find Node 18+..."
+        
+        # Check common installation paths
+        for NODE_PATH in \
+            "$HOME/.nvm/versions/node/v18.*/bin/node" \
+            "/usr/local/bin/node" \
+            "/opt/homebrew/bin/node" \
+            "/usr/bin/node"
+        do
+            if [ -x "$NODE_PATH" ]; then
+                NODE_VERSION_CHECK=$($NODE_PATH --version 2>/dev/null | cut -d'v' -f2)
+                NODE_MAJOR_CHECK=$(echo $NODE_VERSION_CHECK | cut -d'.' -f1)
+                if [ "$NODE_MAJOR_CHECK" -ge 18 ]; then
+                    print_status "Found Node $NODE_VERSION_CHECK at $NODE_PATH"
+                    NODE_BIN="$NODE_PATH"
+                    NPM_BIN="$(dirname $NODE_PATH)/npm"
+                    export PATH="$(dirname $NODE_PATH):$PATH"
+                    break
+                fi
+            fi
+        done
+        
+        # Final version check
+        NODE_VERSION=$($NODE_BIN --version | cut -d'v' -f2)
+        NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
+        
+        if [ "$NODE_MAJOR" -lt 18 ]; then
+            print_error "Still using Node $NODE_VERSION. Please install Node 18+ manually."
+            print_info "Installation options:"
+            print_info "1. NVM: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && nvm install 18"
+            print_info "2. Homebrew (macOS): brew install node@18"
+            print_info "3. Direct download: https://nodejs.org/en/download/"
+            exit 1
+        fi
+    fi
+    
+    print_status "Using Node.js $NODE_VERSION at $NODE_BIN"
+    
+    if [ -z "$NPM_BIN" ] || [ ! -x "$NPM_BIN" ]; then
+        NPM_BIN="$(dirname $NODE_BIN)/npm"
+        if [ ! -x "$NPM_BIN" ]; then
+            print_error "npm not found. Please ensure npm is installed."
+            exit 1
+        fi
+    fi
+    
+    NPM_VERSION=$($NPM_BIN --version)
+    print_status "Using npm $NPM_VERSION at $NPM_BIN"
+}
 
-if ! command -v node &> /dev/null; then
-    print_error "Node.js is not installed. Please install Node.js 18+ first."
-    exit 1
-fi
+# Call the setup function
+setup_node
 
-# Check Node.js version
-NODE_VERSION=$(node --version | cut -d'v' -f2)
-NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
-if [ "$NODE_MAJOR" -lt 18 ]; then
-    print_error "Node.js version $NODE_VERSION detected. Next.js requires Node.js 18.17.0 or higher."
-    print_error "Please update Node.js: nvm install 18 && nvm use 18"
-    exit 1
-fi
+# Check other prerequisites
+print_info "Checking other prerequisites..."
 
 if ! command -v python3 &> /dev/null; then
-    print_error "Python 3 is not installed. Please install Python 3.8+ first."
+    print_error "Python 3 is not installed."
     exit 1
 fi
 
-# Check if we're in the right directory (look for requirements.txt instead)
 if [ ! -f "requirements.txt" ]; then
     print_error "Please run this script from the project root directory (requirements.txt not found)."
     exit 1
@@ -97,14 +174,11 @@ if [ ! -d "venv_clean" ]; then
     python3 -m venv venv_clean
 fi
 
-# Activate virtual environment
 print_info "Activating Python virtual environment..."
 source venv_clean/bin/activate
 
-# Install Python dependencies
 print_info "Installing backend dependencies..."
 pip install -r requirements.txt > /dev/null 2>&1
-
 if [ $? -ne 0 ]; then
     print_error "Backend dependency installation failed"
     exit 1
@@ -112,47 +186,41 @@ fi
 
 print_status "Backend dependencies installed"
 
-# Setup database
 print_info "Setting up database..."
 python3 scripts/setup.py > /dev/null 2>&1
-
 print_status "Database setup completed"
 
 # Frontend Setup
 print_info "Setting up frontend..."
-
-# Check if frontend directory exists
 if [ ! -d "frontend" ]; then
-    print_error "Frontend directory not found. Please ensure all frontend files are in place."
+    print_error "Frontend directory not found."
     exit 1
 fi
 
 cd frontend
 
-# Install frontend dependencies
 print_info "Installing frontend dependencies..."
-npm install > /dev/null 2>&1
-
+"$NPM_BIN" install > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     print_error "Frontend dependency installation failed"
-    cd ..
-    exit 1
+    print_info "Trying with verbose output for debugging..."
+    "$NPM_BIN" install
+    if [ $? -ne 0 ]; then
+        cd ..
+        exit 1
+    fi
 fi
-
 print_status "Frontend dependencies installed"
 cd ..
 
-# Start Backend Server
+# Start Backend
 print_info "Starting backend server on port 8000..."
 cd src
 python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 cd ..
-
-# Wait for backend to start
 sleep 3
 
-# Check if backend is running
 if curl -s http://localhost:8000/health > /dev/null 2>&1; then
     print_status "Backend server started successfully"
 else
@@ -161,24 +229,26 @@ else
     exit 1
 fi
 
-# Start Frontend Server
+# Start Frontend using the verified Node/NPM paths
 print_info "Starting frontend server on port 3000..."
 cd frontend
-npm run dev &
+
+# Set NODE_ENV for development
+export NODE_ENV=development
+
+# Use full path to ensure correct version
+"$NPM_BIN" run dev &
 FRONTEND_PID=$!
 cd ..
-
-# Wait for frontend to start
 sleep 5
 
-# Check if frontend is running
 if curl -s http://localhost:3000 > /dev/null 2>&1; then
     print_status "Frontend server started successfully"
 else
     print_warning "Frontend server may still be starting..."
 fi
 
-# Success banner
+# Success Output
 echo ""
 echo "🎉 AI Development Intelligence System is now LIVE!"
 echo "===================================================="
@@ -204,7 +274,6 @@ echo ""
 print_warning "Press Ctrl+C to stop all servers"
 echo ""
 
-# Keep script running
 while true; do
     sleep 1
 done
