@@ -1,3 +1,4 @@
+# scripts/setup.py
 #!/usr/bin/env python3
 """
 Setup script for AI Task Router Phase 1
@@ -150,6 +151,7 @@ def main():
     steps = [
         ("Creating directories", create_directories),
         ("Setting up database", setup_database),
+        ("Seeding database", seed_database),
         ("Downloading ML models", download_models),
         ("Verifying installation", verify_installation),
     ]
@@ -168,6 +170,133 @@ def main():
     print("3. Visit http://localhost:8000 for the API")
     print("4. Visit http://localhost:8501 for the dashboard")
     print("\nPhase 1 (Developer Expertise Modeling) is ready! 🎉")
+
+def seed_database():
+    """Seed database with initial sample data for testing."""
+    print("🌱 Seeding database with sample data...")
+    
+    try:
+        from src.models.database import (
+            Developer, Task, TaskAssignment, AssignmentOutcome, 
+            ModelPerformance, DeveloperPreference, SkillImportanceFactor
+        )
+        
+        db = SessionLocal()
+        
+        # Check if data already exists
+        existing_dev = db.query(Developer).filter(Developer.email == "dev@example.com").first()
+        if existing_dev:
+            print("  ✅ Sample data already exists, skipping seeding")
+            db.close()
+            return True
+        
+        # Create sample developer
+        developer = Developer(
+            github_username="sample_dev",
+            name="Sample Developer",
+            email="dev@example.com",
+            skill_vector={"python": 0.8, "javascript": 0.6},
+            primary_languages={"python": 0.8, "javascript": 0.6},
+            domain_expertise={"backend": 0.7, "frontend": 0.5},
+            collaboration_score=0.75,
+            learning_velocity=0.6
+        )
+        db.add(developer)
+        db.commit()
+        
+        # Create sample task
+        task = Task(
+            title="Sample Task",
+            description="A sample task for testing",
+            repository="test/repo",
+            status="completed",
+            technical_complexity=0.6,
+            domain_difficulty=0.5,
+            collaboration_requirements=0.4,
+            learning_opportunities=0.7,
+            business_impact=0.8,
+            estimated_hours=8.0,
+            complexity_confidence=0.9
+        )
+        db.add(task)
+        db.commit()
+        
+        # Create sample assignment
+        assignment = TaskAssignment(
+            task_id=task.id,
+            developer_id=developer.id,
+            status="completed",
+            confidence_score=0.85,
+            reasoning="Good skill match",
+            actual_hours=7.5,
+            feedback_score=0.9,
+            productivity_score=0.88,
+            skill_development_score=0.75,
+            collaboration_effectiveness=0.8
+        )
+        db.add(assignment)
+        db.commit()
+        
+        # Create sample outcome
+        outcome = AssignmentOutcome(
+            assignment_id=assignment.id,
+            task_completion_quality=0.9,
+            developer_satisfaction=0.85,
+            learning_achieved=0.75,
+            collaboration_effectiveness=0.8,
+            time_estimation_accuracy=0.95,
+            performance_metrics={"code_quality": 0.9, "requirements_met": 0.95},
+            skill_improvements=["python", "testing"],
+            challenges_faced=["complex algorithms"],
+            success_factors=["good documentation", "clear requirements"]
+        )
+        db.add(outcome)
+        
+        # Create sample model performance
+        model_perf = ModelPerformance(
+            model_name="complexity_predictor",
+            version="1.0",
+            accuracy_score=0.87,
+            prediction_count=100,
+            correct_predictions=87,
+            average_confidence=0.82
+        )
+        db.add(model_perf)
+        
+        # Create sample developer preference
+        dev_pref = DeveloperPreference(
+            developer_id=developer.id,
+            preferred_complexity_min=0.4,
+            preferred_complexity_max=0.8,
+            complexity_comfort_zone=0.6,
+            learning_appetite=0.7,
+            preference_confidence=0.8,
+            sample_size=10
+        )
+        db.add(dev_pref)
+        
+        # Create sample skill importance factor
+        skill_factor = SkillImportanceFactor(
+            task_type="feature_development",
+            complexity_range="medium",
+            domain="backend",
+            skill_name="python",
+            importance_factor=0.9,
+            confidence=0.8,
+            successful_assignments=8,
+            total_assignments=10
+        )
+        db.add(skill_factor)
+        
+        db.commit()
+        db.close()
+        
+        print("  ✅ Sample data created successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error seeding database: {e}")
+        return False
 
 if __name__ == "__main__":
     main()

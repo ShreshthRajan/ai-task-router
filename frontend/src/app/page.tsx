@@ -35,55 +35,96 @@ export default function LandingPage() {
   const [realMetrics, setRealMetrics] = useState<any[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
 
-  useEffect(() => {
-    const loadMetrics = async () => {
-      try {
-        const { learningApi } = await import('@/lib/api-client');
-        const [healthResponse, analyticsResponse] = await Promise.all([
-          learningApi.getSystemHealth(),
-          learningApi.getAnalytics()
-        ]);
+  const [error, setError] = useState<string | null>(null);
 
-        setRealMetrics([
-          {
-            value: "768",
-            label: "AI Skill Dimensions",
-            description: "CodeBERT semantic vectors",
-            color: "from-blue-400 to-cyan-500",
-            delay: 0
-          },
-          {
-            value: `${((analyticsResponse.data.model_performance?.assignment_accuracy || 0.987) * 100).toFixed(1)}%`,
-            label: "Assignment Accuracy",
-            description: "Production-tested performance",
-            color: "from-emerald-400 to-green-500",
-            delay: 0.1
-          },
-          {
-            value: `${((healthResponse.data.system_metrics?.avg_response_time_ms || 2300) / 1000).toFixed(1)}s`,
-            label: "Analysis Speed",
-            description: "Real-time intelligence",
-            color: "from-purple-400 to-pink-500",
-            delay: 0.2
-          },
-          {
-            value: `+${((analyticsResponse.data.productivity_metrics?.avg_task_completion_improvement || 0.34) * 100).toFixed(0)}%`,
-            label: "Productivity Gain",
-            description: "Measured improvement",
-            color: "from-amber-400 to-orange-500",
-            delay: 0.3
-          }
-        ]);
-      } catch (error) {
-        console.error('Backend connection failed:', error);
-        setRealMetrics([]);
-      } finally {
-        setIsLoadingMetrics(false);
+useEffect(() => {
+  const loadMetrics = async () => {
+    try {
+      setIsLoadingMetrics(true);
+      setError(null);
+      
+      const { learningApi } = await import('@/lib/api-client');
+      const [healthResponse, analyticsResponse] = await Promise.all([
+        learningApi.getSystemHealth(),
+        learningApi.getAnalytics()
+      ]);
+
+      // Strict validation - no fallbacks allowed
+      if (!healthResponse.data?.system_metrics?.avg_response_time_ms) {
+        throw new Error('Backend response time data unavailable');
       }
-    };
 
-    loadMetrics();
-  }, []);
+      if (!analyticsResponse.data?.model_performance?.assignment_accuracy) {
+        throw new Error('Backend accuracy data unavailable');
+      }
+
+      if (!analyticsResponse.data?.productivity_metrics?.avg_task_completion_improvement) {
+        throw new Error('Backend productivity data unavailable');
+      }
+
+      // Only show metrics with 100% real data
+      setRealMetrics([
+        {
+          value: "768",
+          label: "AI Skill Dimensions",
+          description: "CodeBERT semantic vectors",
+          color: "from-blue-400 to-cyan-500",
+          delay: 0
+        },
+        {
+          value: `${(analyticsResponse.data.model_performance.assignment_accuracy * 100).toFixed(1)}%`,
+          label: "Assignment Success Rate",
+          description: "Real production metrics",
+          color: "from-emerald-400 to-green-500",
+          delay: 0.1
+        },
+        {
+          value: `${(healthResponse.data.system_metrics.avg_response_time_ms / 1000).toFixed(1)}s`,
+          label: "Analysis Speed",
+          description: "Real-time intelligence",
+          color: "from-purple-400 to-pink-500",
+          delay: 0.2
+        },
+        {
+          value: `+${(analyticsResponse.data.productivity_metrics.avg_task_completion_improvement * 100).toFixed(0)}%`,
+          label: "Productivity Gain",
+          description: "Measured improvement",
+          color: "from-amber-400 to-orange-500",
+          delay: 0.3
+        }
+      ]);
+      
+    } catch (error: any) {
+      console.error('Backend connection failed:', error);
+      setError(`AI systems offline: ${error.message}`);
+      setRealMetrics([]); // NO fallbacks
+    } finally {
+      setIsLoadingMetrics(false);
+    }
+  };
+
+  loadMetrics();
+}, []);
+
+// Add error display in render section
+if (error) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="text-center max-w-md">
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 mb-6">
+          <div className="text-red-600 dark:text-red-400 text-xl font-semibold mb-2">⚠️ System Offline</div>
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
+        >
+          Retry Connection
+        </button>
+      </div>
+    </div>
+  );
+}
 
   const metrics = realMetrics;
 

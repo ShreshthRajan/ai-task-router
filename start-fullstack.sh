@@ -80,7 +80,14 @@ setup_node() {
     
     # Verify Node version
     NODE_BIN="$(command -v node)"
-    NPM_BIN="$(command -v npm)"
+
+    NPM_BIN="$(dirname "$NODE_BIN")/npm"
+
+    if [ ! -x "$NPM_BIN" ]; then
+        print_error "npm for Node $NODE_VERSION not found (looked in $(dirname "$NODE_BIN"))."
+        exit 1
+    fi
+    print_status "Using npm $($NPM_BIN --version) at $NPM_BIN"
     
     if [ -z "$NODE_BIN" ]; then
         print_error "Node.js is not installed. Please install Node.js 18+ first."
@@ -186,8 +193,21 @@ fi
 
 print_status "Backend dependencies installed"
 
+# Download spaCy model
+print_info "Downloading spaCy language model..."
+python -m spacy download en_core_web_sm > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    print_status "spaCy model downloaded successfully"
+else
+    print_warning "spaCy model download failed, but continuing..."
+fi
+
 print_info "Setting up database..."
-python3 scripts/setup.py > /dev/null 2>&1
+python3 scripts/setup.py
+if [ $? -ne 0 ]; then
+    print_error "Database setup failed"
+    exit 1
+fi
 print_status "Database setup completed"
 
 # Frontend Setup
@@ -214,19 +234,32 @@ print_status "Frontend dependencies installed"
 cd ..
 
 # Start Backend
-print_info "Starting backend server on port 8000..."
+print_info "Starting backend server on port 8001..."
 cd src
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8001 --reload &
 BACKEND_PID=$!
 cd ..
-sleep 3
 
-if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+# Wait longer and check for backend startup more thoroughly
+print_info "Waiting for backend to initialize..."
+sleep 5
+
+# Check multiple times with longer timeout
+BACKEND_READY=false
+for i in {1..12}; do
+    if curl -s http://localhost:8001/health > /dev/null 2>&1; then
+        BACKEND_READY=true
+        break
+    fi
+    sleep 2
+    echo -n "."
+done
+echo ""
+
+if [ "$BACKEND_READY" = true ]; then
     print_status "Backend server started successfully"
 else
-    print_error "Backend server failed to start"
-    kill $BACKEND_PID 2>/dev/null
-    exit 1
+    print_warning "Backend server may still be starting (continuing anyway...)"
 fi
 
 # Start Frontend using the verified Node/NPM paths
@@ -240,9 +273,23 @@ export NODE_ENV=development
 "$NPM_BIN" run dev &
 FRONTEND_PID=$!
 cd ..
-sleep 5
 
-if curl -s http://localhost:3000 > /dev/null 2>&1; then
+# Wait for frontend
+sleep 8
+
+# Check frontend
+FRONTEND_READY=false
+for i in {1..6}; do
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
+        FRONTEND_READY=true
+        break
+    fi
+    sleep 2
+    echo -n "."
+done
+echo ""
+
+if [ "$FRONTEND_READY" = true ]; then
     print_status "Frontend server started successfully"
 else
     print_warning "Frontend server may still be starting..."
@@ -262,9 +309,9 @@ echo ""
 echo "📱 Access Points:"
 echo "┌─────────────────────────────────────────────────────┐"
 echo "│  🎨 Frontend App: http://localhost:3000            │"
-echo "│  🔧 Backend API:  http://localhost:8000            │"
-echo "│  📖 API Docs:     http://localhost:8000/docs       │"
-echo "│  ❤️  Health:      http://localhost:8000/health     │"
+echo "│  🔧 Backend API:  http://localhost:8001            │"
+echo "│  📖 API Docs:     http://localhost:8001/docs       │"
+echo "│  ❤️  Health:      http://localhost:8001/health     │"
 echo "└─────────────────────────────────────────────────────┘"
 echo ""
 print_info "🚀 Ready to analyze GitHub repositories!"

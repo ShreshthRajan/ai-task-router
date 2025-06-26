@@ -1,5 +1,8 @@
 // frontend/src/app/dashboard/page.tsx
+
+
 'use client';
+
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -24,6 +27,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { learningApi } from '@/lib/api-client';
 
+
 // Real-time data interfaces
 interface SystemMetrics {
   assignment_accuracy: number;
@@ -44,29 +48,64 @@ interface TrendData {
 export default function DashboardOverview() {
   const router = useRouter();
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
+  const [previousMetrics, setPreviousMetrics] = useState<SystemMetrics | null>(null);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadRealMetrics = async () => {
       try {
         setIsLoadingMetrics(true);
-
+        setError(null);
+    
         const [healthResponse, analyticsResponse] = await Promise.all([
           learningApi.getSystemHealth(),
           learningApi.getAnalytics()
         ]);
-
+    
+        // Strict validation - fail fast if ANY required data is missing
+        if (!healthResponse.data?.system_metrics) {
+          throw new Error('Backend system_metrics unavailable');
+        }
+    
+        if (!analyticsResponse.data?.model_performance) {
+          throw new Error('Backend model_performance unavailable');
+        }
+    
+        if (!analyticsResponse.data?.productivity_metrics) {
+          throw new Error('Backend productivity_metrics unavailable');
+        }
+    
+        // Validate specific required fields
+        const requiredFields = [
+          { value: analyticsResponse.data.model_performance.assignment_accuracy, name: 'assignment_accuracy' },
+          { value: healthResponse.data.system_metrics.avg_response_time_ms, name: 'avg_response_time_ms' },
+          { value: analyticsResponse.data.productivity_metrics.cost_savings_monthly, name: 'cost_savings_monthly' },
+          { value: analyticsResponse.data.productivity_metrics.developer_satisfaction_score, name: 'developer_satisfaction_score' },
+          { value: healthResponse.data.system_metrics.active_analyses, name: 'active_analyses' },
+          { value: healthResponse.data.system_metrics.uptime_hours, name: 'uptime_hours' }
+        ];
+    
+        for (const field of requiredFields) {
+          if (field.value === undefined || field.value === null) {
+            throw new Error(`Missing required field: ${field.name}`);
+          }
+        }
+    
+        // Only set metrics if ALL real data is present
         setSystemMetrics({
-          assignment_accuracy: (analyticsResponse.data.model_performance?.assignment_accuracy || 0.987) * 100,
-          analysis_speed_ms: healthResponse.data.system_metrics?.avg_response_time_ms || 2300,
-          cost_savings_monthly: analyticsResponse.data.productivity_metrics?.cost_savings_monthly || 169200,
-          developer_satisfaction: (analyticsResponse.data.productivity_metrics?.developer_satisfaction_score || 0.94) * 100,
-          active_analyses: healthResponse.data.system_metrics?.active_analyses || 0,
-          uptime_hours: healthResponse.data.system_metrics?.uptime_hours || 0
+          assignment_accuracy: analyticsResponse.data.model_performance.assignment_accuracy * 100,
+          analysis_speed_ms: healthResponse.data.system_metrics.avg_response_time_ms,
+          cost_savings_monthly: analyticsResponse.data.productivity_metrics.cost_savings_monthly,
+          developer_satisfaction: analyticsResponse.data.productivity_metrics.developer_satisfaction_score * 100,
+          active_analyses: healthResponse.data.system_metrics.active_analyses,
+          uptime_hours: healthResponse.data.system_metrics.uptime_hours
         });
-      } catch (error) {
-        console.error('Failed to load metrics:', error);
-        setSystemMetrics(null);
+    
+      } catch (error: any) {
+        console.error('Backend integration failed:', error);
+        setError(error.message); // Fix type error by passing just the message string
+        setSystemMetrics(null); // NO fallbacks - show error state
       } finally {
         setIsLoadingMetrics(false);
       }
@@ -86,9 +125,9 @@ export default function DashboardOverview() {
         const analyticsResponse = await learningApi.getAnalytics();
         const trends = analyticsResponse.data.recent_optimizations?.slice(-7).map((opt: any, index: number) => ({
           date: `${7-index}d ago`,
-          accuracy: opt.performance_gain * 100 || 96 + Math.random() * 3,
-          assignments: Math.floor(Math.random() * 20) + 15,
-          satisfaction: opt.confidence * 100 || 90 + Math.random() * 5
+          accuracy: opt.performance_gain * 100,
+          assignments: opt.assignments_count || 0,
+          satisfaction: opt.confidence * 100
         })) || [];
         setTrendData(trends);
       } catch (error) {
@@ -139,19 +178,50 @@ export default function DashboardOverview() {
     return () => clearInterval(interval);
   }, [systemMetrics]);
 
-  // Show loading state if metrics haven't loaded yet
-  if (isLoadingMetrics || !systemMetrics) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="loading-spinner w-8 h-8 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading system metrics...</p>
+// Show loading state
+if (isLoadingMetrics) {
+  return (
+    <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff7c43] mx-auto mb-4"></div>
+        <p className="text-lg">Connecting to AI backend systems...</p>
+        <p className="text-sm text-slate-400 mt-2">Loading real system metrics</p>
+      </div>
+    </div>
+  );
+}
+
+// Show error state when backend fails
+if (error || !systemMetrics) {
+  return (
+    <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
+      <div className="text-center max-w-lg">
+        <div className="p-6 bg-red-900/20 rounded-xl border border-red-800 mb-6">
+          <div className="text-red-400 text-2xl font-semibold mb-3">⚠️ Backend Systems Offline</div>
+          <p className="text-red-300 mb-4">{error || 'Unable to connect to AI backend systems'}</p>
+          <div className="text-sm text-red-400/70">
+            Real system metrics unavailable. No fallback data will be shown.
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#ff7c43] text-white px-6 py-3 rounded-xl hover:bg-[#ff7c43]/90 transition-colors"
+          >
+            Retry Connection
+          </button>
+          <button
+            onClick={() => router.push('/dashboard/analyze')}
+            className="bg-slate-700 text-white px-6 py-3 rounded-xl hover:bg-slate-600 transition-colors"
+          >
+            Try Repository Analysis
+          </button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  const [previousMetrics, setPreviousMetrics] = useState<SystemMetrics | null>(null);
 
   const primaryMetrics = systemMetrics ? [
     {
@@ -231,17 +301,6 @@ export default function DashboardOverview() {
       href: "/dashboard/team"
     }
   ];
-
-  if (isLoadingMetrics || !systemMetrics) {
-    return (
-      <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff7c43] mx-auto mb-4"></div>
-          <p className="text-lg">Loading system metrics...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#242422] text-[#f4f4f4]">

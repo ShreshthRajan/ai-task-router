@@ -1,3 +1,4 @@
+# src/api/learning.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
@@ -53,14 +54,15 @@ async def get_system_health(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting system health: {str(e)}")
 
-@router.get("/learning/analytics", response_model=LearningSystemAnalytics)
+# REPLACE the entire function with:
+@router.get("/learning/analytics")
 async def get_learning_analytics(db: Session = Depends(get_db)):
     """Get comprehensive learning system analytics."""
     try:
-        return await system_analytics.get_learning_system_analytics(db)
+        return await system_analytics.get_learning_analytics_for_frontend(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting learning analytics: {str(e)}")
-
+    
 @router.get("/learning/insights", response_model=List[PredictiveInsights])
 async def get_predictive_insights(
     developer_id: Optional[int] = Query(None, description="Specific developer ID"),

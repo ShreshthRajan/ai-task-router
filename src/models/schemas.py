@@ -371,14 +371,25 @@ class AnalysisPerformanceMetrics(BaseModel):
    timestamp: datetime = datetime.utcnow()
 
 class SystemHealthMetrics(BaseModel):
-   """Overall system health metrics."""
-   cpu_usage_percent: float
-   memory_usage_percent: float
-   database_connections: int
-   active_analyses: int
-   avg_response_time_ms: float
-   error_rate_last_hour: float
-   timestamp: datetime = datetime.utcnow()
+    """System-wide health and performance metrics - Updated to match frontend expectations."""
+    # Core system metrics (what frontend expects)
+    system_metrics: Dict[str, Any] = {
+        "avg_response_time_ms": 0.0,
+        "active_analyses": 0,
+        "uptime_hours": 0.0,
+        "assignments_optimized_today": 0
+    }
+    
+    # Learning metrics (original fields)
+    avg_assignment_quality: float = Field(..., ge=0.0, le=1.0)
+    avg_developer_satisfaction: float = Field(..., ge=0.0, le=1.0)
+    avg_skill_development_rate: float = Field(..., ge=0.0, le=1.0)
+    assignment_success_rate: float = Field(..., ge=0.0, le=1.0)
+    team_productivity_score: float = Field(..., ge=0.0, le=1.0)
+    learning_accuracy_trend: float
+    prediction_confidence_avg: float = Field(..., ge=0.0, le=1.0)
+    total_assignments: int
+    completed_assignments: int
 
 # Assignment Optimization Schemas
 class OptimizationObjective(str, Enum):
@@ -565,17 +576,21 @@ class ModelPerformanceMetrics(BaseModel):
     correct_predictions: int = 0
     average_confidence: float = Field(..., ge=0.0, le=1.0)
 
-class SystemHealthMetrics(BaseModel):
-    """System-wide health and performance metrics."""
-    avg_assignment_quality: float = Field(..., ge=0.0, le=1.0)
-    avg_developer_satisfaction: float = Field(..., ge=0.0, le=1.0)
-    avg_skill_development_rate: float = Field(..., ge=0.0, le=1.0)
-    assignment_success_rate: float = Field(..., ge=0.0, le=1.0)
-    team_productivity_score: float = Field(..., ge=0.0, le=1.0)
-    learning_accuracy_trend: float
-    prediction_confidence_avg: float = Field(..., ge=0.0, le=1.0)
-    total_assignments: int
-    completed_assignments: int
+class LearningSystemAnalytics(BaseModel):
+    """Learning system analytics matching frontend expectations."""
+    model_performance: Dict[str, Any] = {
+        "assignment_accuracy": 0.0,
+        "prediction_confidence": 0.0,
+        "learning_rate": 0.0,
+        "improvement_trend": 0.0
+    }
+    recent_optimizations: List[Dict[str, Any]] = []
+    productivity_metrics: Dict[str, Any] = {
+        "avg_task_completion_improvement": 0.0,
+        "developer_satisfaction_score": 0.0,
+        "cost_savings_monthly": 0.0,
+        "time_saved_hours": 0.0
+    }
 
 class LearningExperimentCreate(BaseModel):
     """Create learning experiment."""
