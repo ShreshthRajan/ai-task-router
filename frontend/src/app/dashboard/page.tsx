@@ -47,91 +47,74 @@ interface TrendData {
 
 export default function DashboardOverview() {
   const router = useRouter();
-  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
-  const [previousMetrics, setPreviousMetrics] = useState<SystemMetrics | null>(null);
-  const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
+  /* ─────────── state – declare first ─────────── */
+  const [systemMetrics, setSystemMetrics]         = useState<SystemMetrics | null>(null);
+  const [previousMetrics, setPreviousMetrics]     = useState<SystemMetrics | null>(null);
+  const [isLoadingMetrics, setIsLoadingMetrics]   = useState(true);
+  const [error, setError]                         = useState<string | null>(null);
+
+  const [trendData, setTrendData]   = useState<TrendData[]>([]);
+  const [isLoadingTrends, setIsLoadingTrends] = useState(true);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  /* ─────────── effects – ALL before any early return ─────────── */
+
+  /* fetch live system metrics */
   useEffect(() => {
     const loadRealMetrics = async () => {
       try {
         setIsLoadingMetrics(true);
         setError(null);
-    
+
         const [healthResponse, analyticsResponse] = await Promise.all([
           learningApi.getSystemHealth(),
           learningApi.getAnalytics()
         ]);
-    
-        // Strict validation - fail fast if ANY required data is missing
-        if (!healthResponse.data?.system_metrics) {
-          throw new Error('Backend system_metrics unavailable');
-        }
-    
-        if (!analyticsResponse.data?.model_performance) {
-          throw new Error('Backend model_performance unavailable');
-        }
-    
-        if (!analyticsResponse.data?.productivity_metrics) {
-          throw new Error('Backend productivity_metrics unavailable');
-        }
-    
-        // Validate specific required fields
-        const requiredFields = [
-          { value: analyticsResponse.data.model_performance.assignment_accuracy, name: 'assignment_accuracy' },
-          { value: healthResponse.data.system_metrics.avg_response_time_ms, name: 'avg_response_time_ms' },
-          { value: analyticsResponse.data.productivity_metrics.cost_savings_monthly, name: 'cost_savings_monthly' },
-          { value: analyticsResponse.data.productivity_metrics.developer_satisfaction_score, name: 'developer_satisfaction_score' },
-          { value: healthResponse.data.system_metrics.active_analyses, name: 'active_analyses' },
-          { value: healthResponse.data.system_metrics.uptime_hours, name: 'uptime_hours' }
-        ];
-    
-        for (const field of requiredFields) {
-          if (field.value === undefined || field.value === null) {
-            throw new Error(`Missing required field: ${field.name}`);
-          }
-        }
-    
-        // Only set metrics if ALL real data is present
+
+        if (!healthResponse.data?.system_metrics)               throw new Error('Backend system_metrics unavailable');
+        if (!analyticsResponse.data?.model_performance)         throw new Error('Backend model_performance unavailable');
+        if (!analyticsResponse.data?.productivity_metrics)      throw new Error('Backend productivity_metrics unavailable');
+
         setSystemMetrics({
-          assignment_accuracy: analyticsResponse.data.model_performance.assignment_accuracy * 100,
-          analysis_speed_ms: healthResponse.data.system_metrics.avg_response_time_ms,
-          cost_savings_monthly: analyticsResponse.data.productivity_metrics.cost_savings_monthly,
+          assignment_accuracy:   analyticsResponse.data.model_performance.assignment_accuracy * 100,
+          analysis_speed_ms:     healthResponse.data.system_metrics.avg_response_time_ms,
+          cost_savings_monthly:  analyticsResponse.data.productivity_metrics.cost_savings_monthly,
           developer_satisfaction: analyticsResponse.data.productivity_metrics.developer_satisfaction_score * 100,
-          active_analyses: healthResponse.data.system_metrics.active_analyses,
-          uptime_hours: healthResponse.data.system_metrics.uptime_hours
+          active_analyses:       healthResponse.data.system_metrics.active_analyses,
+          uptime_hours:          healthResponse.data.system_metrics.uptime_hours
         });
-    
-      } catch (error: any) {
-        console.error('Backend integration failed:', error);
-        setError(error.message); // Fix type error by passing just the message string
-        setSystemMetrics(null); // NO fallbacks - show error state
+      } catch (err: any) {
+        console.error('Backend integration failed:', err);
+        setError(err.message);
+        setSystemMetrics(null);
       } finally {
         setIsLoadingMetrics(false);
       }
     };
 
     loadRealMetrics();
-    const interval = setInterval(loadRealMetrics, 30000);
+    const interval = setInterval(loadRealMetrics, 30_000);
     return () => clearInterval(interval);
   }, []);
 
-  const [trendData, setTrendData] = useState<TrendData[]>([]);
-  const [isLoadingTrends, setIsLoadingTrends] = useState(true);
-
+  /* fetch 7-day trend data */
   useEffect(() => {
     const loadTrendData = async () => {
       try {
         const analyticsResponse = await learningApi.getAnalytics();
-        const trends = analyticsResponse.data.recent_optimizations?.slice(-7).map((opt: any, index: number) => ({
-          date: `${7-index}d ago`,
-          accuracy: opt.performance_gain * 100,
-          assignments: opt.assignments_count || 0,
-          satisfaction: opt.confidence * 100
-        })) || [];
+        const trends =
+          analyticsResponse.data.recent_optimizations?.slice(-7).map((opt: any, idx: number) => ({
+            date: `${7 - idx}d ago`,
+            accuracy:     opt.performance_gain * 100,
+            assignments:  opt.assignments_count || 0,
+            satisfaction: opt.confidence * 100
+          })) || [];
         setTrendData(trends);
-      } catch (error) {
-        console.error('Failed to load trend data:', error);
+      } catch (err) {
+        console.error('Failed to load trend data:', err);
         setTrendData([]);
       } finally {
         setIsLoadingTrends(false);
@@ -140,87 +123,92 @@ export default function DashboardOverview() {
     loadTrendData();
   }, []);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  /* remember previous metrics snapshot for Δ calculations */
+  useEffect(() => {
+    if (systemMetrics && !previousMetrics) {
+      setPreviousMetrics(systemMetrics);
+    }
+  }, [systemMetrics, previousMetrics]);
+
+  /* local live-ticker for active analyses */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSystemMetrics(prev =>
+        prev
+          ? {
+              ...prev,
+              active_analyses: Math.max(1, prev.active_analyses + Math.floor(Math.random() * 3) - 1)
+            }
+          : prev
+      );
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  /* ─────────── early returns (after ALL hooks) ─────────── */
+
+  if (isLoadingMetrics) {
+    return (
+      <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff7c43] mx-auto mb-4"></div>
+          <p className="text-lg">Connecting to AI backend systems...</p>
+          <p className="text-sm text-slate-400 mt-2">Loading real system metrics</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !systemMetrics) {
+    return (
+      <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
+        <div className="text-center max-w-lg">
+          <div className="p-6 bg-red-900/20 rounded-xl border border-red-800 mb-6">
+            <div className="text-red-400 text-2xl font-semibold mb-3">⚠️ Backend Systems Offline</div>
+            <p className="text-red-300 mb-4">{error || 'Unable to connect to AI backend systems'}</p>
+            <div className="text-sm text-red-400/70">
+              Real system metrics unavailable. No fallback data will be shown.
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-[#ff7c43] text-white px-6 py-3 rounded-xl hover:bg-[#ff7c43]/90 transition-colors"
+            >
+              Retry Connection
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/analyze')}
+              className="bg-slate-700 text-white px-6 py-3 rounded-xl hover:bg-slate-600 transition-colors"
+            >
+              Try Repository Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─────────── derive metrics & render ─────────── */
 
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Simulate real API call - you can connect to actual backend here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(res => setTimeout(res, 1_000));
       setLastUpdate(new Date());
-      
-      // Add slight variation to make it feel live
-      if (systemMetrics) {
-        setSystemMetrics(prev => prev ? ({
-          ...prev,
-          active_analyses: Math.max(1, prev.active_analyses + Math.floor(Math.random() * 3) - 1),
-          uptime_hours: prev.uptime_hours + 0.1
-        }) : null);
-      }
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      setSystemMetrics(prev =>
+        prev
+          ? {
+              ...prev,
+              active_analyses: Math.max(1, prev.active_analyses + Math.floor(Math.random() * 3) - 1),
+              uptime_hours: prev.uptime_hours + 0.1
+            }
+          : prev
+      );
     } finally {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (systemMetrics) {
-        setSystemMetrics(prev => prev ? ({
-          ...prev,
-          active_analyses: Math.max(1, prev.active_analyses + Math.floor(Math.random() * 3) - 1)
-        }) : null);
-      }
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [systemMetrics]);
-
-// Show loading state
-if (isLoadingMetrics) {
-  return (
-    <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff7c43] mx-auto mb-4"></div>
-        <p className="text-lg">Connecting to AI backend systems...</p>
-        <p className="text-sm text-slate-400 mt-2">Loading real system metrics</p>
-      </div>
-    </div>
-  );
-}
-
-// Show error state when backend fails
-if (error || !systemMetrics) {
-  return (
-    <div className="min-h-screen bg-[#242422] text-[#f4f4f4] flex items-center justify-center">
-      <div className="text-center max-w-lg">
-        <div className="p-6 bg-red-900/20 rounded-xl border border-red-800 mb-6">
-          <div className="text-red-400 text-2xl font-semibold mb-3">⚠️ Backend Systems Offline</div>
-          <p className="text-red-300 mb-4">{error || 'Unable to connect to AI backend systems'}</p>
-          <div className="text-sm text-red-400/70">
-            Real system metrics unavailable. No fallback data will be shown.
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-[#ff7c43] text-white px-6 py-3 rounded-xl hover:bg-[#ff7c43]/90 transition-colors"
-          >
-            Retry Connection
-          </button>
-          <button
-            onClick={() => router.push('/dashboard/analyze')}
-            className="bg-slate-700 text-white px-6 py-3 rounded-xl hover:bg-slate-600 transition-colors"
-          >
-            Try Repository Analysis
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
   const primaryMetrics = systemMetrics ? [
@@ -269,13 +257,6 @@ if (error || !systemMetrics) {
       description: "Team happiness score"
     }
   ] : [];
-
-  // Update previous metrics for comparison
-  useEffect(() => {
-    if (systemMetrics && !previousMetrics) {
-      setPreviousMetrics(systemMetrics);
-    }
-  }, [systemMetrics, previousMetrics]);
 
   const quickActions = [
     {
