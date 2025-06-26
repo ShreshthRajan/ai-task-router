@@ -40,7 +40,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${inter.className} antialiased bg-slate-900 text-slate-100`}>
+      <body className={`${inter.className} antialiased bg-slate-900 text-slate-100 dark`}>
         {children}
       </body>
     </html>
