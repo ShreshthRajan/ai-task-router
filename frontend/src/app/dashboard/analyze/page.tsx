@@ -165,9 +165,11 @@ export default function GitHubAnalyzer() {
           },
           analysis_metadata: {
             analysis_time_ms: response.data.analysis_time_ms || 0,
-            confidence_score: 0.85,
-            commits_analyzed: 0,
-            files_analyzed: 0,
+            confidence_score: response.data.team_metrics?.team_strength_score || 0.85,
+            commits_analyzed: response.data.team_metrics?.total_commits_analyzed || 
+                             (response.data.developers || []).reduce((sum, dev) => sum + (dev.commits_analyzed || 0), 0),
+            files_analyzed: response.data.team_metrics?.total_lines_of_code || 
+                           (response.data.developers || []).reduce((sum, dev) => sum + (dev.lines_of_code || 0), 0),
             analysis_timestamp: new Date().toISOString()
           }
         };

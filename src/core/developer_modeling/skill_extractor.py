@@ -1,3 +1,4 @@
+# src/core/developer_modeling/skill_extractor.py
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
@@ -499,20 +500,38 @@ class SkillExtractor:
         return domain_scores
     
     def _calculate_learning_velocity(self, commits: List[Dict], 
-                                   time_window_days: int) -> float:
+                               time_window_days: int) -> float:
         """Calculate how quickly developer is learning new skills."""
         
         if len(commits) < 2:
             return 0.0
         
+        # Helper function to parse timestamps safely (same as in _extract_code_skills)
+        def parse_timestamp(timestamp_str: str) -> datetime:
+            try:
+                if 'T' in timestamp_str:
+                    # Remove timezone info to make it naive
+                    if timestamp_str.endswith('Z'):
+                        timestamp_str = timestamp_str[:-1]
+                    elif '+' in timestamp_str:
+                        timestamp_str = timestamp_str.split('+')[0]
+                    elif timestamp_str.endswith('+00:00'):
+                        timestamp_str = timestamp_str[:-6]
+                    
+                    return datetime.fromisoformat(timestamp_str)
+                else:
+                    return datetime.fromisoformat(timestamp_str)
+            except Exception:
+                return datetime(2020, 1, 1)  # fallback date
+        
         # Sort commits by date
         sorted_commits = sorted(commits, 
-                              key=lambda x: datetime.fromisoformat(x.get('timestamp', '2020-01-01')))
+                            key=lambda x: parse_timestamp(x.get('timestamp', '2020-01-01')))
         
         # Divide time window into periods
         periods = 4
         period_length = time_window_days // periods
-        cutoff_date = datetime.utcnow() - timedelta(days=time_window_days)
+        cutoff_date = datetime.utcnow().replace(tzinfo=None) - timedelta(days=time_window_days)
         
         period_skills = []
         
@@ -522,7 +541,7 @@ class SkillExtractor:
             
             period_commits = [
                 commit for commit in sorted_commits
-                if period_start <= datetime.fromisoformat(commit.get('timestamp', '2020-01-01')) < period_end
+                if period_start <= parse_timestamp(commit.get('timestamp', '2020-01-01')) < period_end
             ]
             
             if period_commits:
