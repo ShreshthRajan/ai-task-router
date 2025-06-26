@@ -242,8 +242,8 @@ export default function GitHubAnalyzer() {
   };
 
   return (
-    <div className="min-h-screen bg-[#242422]">
-      <div className="container-bounded py-8 space-y-8">
+    <div className="bg-[#242422] flex-1">
+      <div className="dashboard-container py-8 space-y-8">
       {/* Header */}
       <motion.div 
         className="flex items-center justify-between"

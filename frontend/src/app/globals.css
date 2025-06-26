@@ -275,8 +275,16 @@
 
   /* Layout Utilities */
   .container-bounded {
+    /* centre-aligned container — still used by the landing page */
     @apply max-w-7xl mx-auto px-6 lg:px-8;
   }
+
+  /* NEW — dashboard & analysis pages: same width cap but LEFT-aligned
+     so the content lines up flush with the 80 px sidebar */
+  .dashboard-container {
+    @apply w-full max-w-7xl px-6 lg:px-10;
+  }
+
 
   .section-spacing {
     @apply py-16 lg:py-20;

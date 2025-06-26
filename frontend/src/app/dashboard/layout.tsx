@@ -161,7 +161,7 @@ export default function DashboardLayout({
         animate={{
           x: sidebarOpen ? 0 : -320,
         }}
-        className="fixed inset-y-0 left-0 z-50 w-80 bg-[#2a2a28] border-r border-[#404040] lg:translate-x-0 lg:static lg:inset-0"
+        className="fixed inset-y-0 left-0 z-50 w-80 bg-[#2a2a28] border-r border-[#404040] lg:translate-x-0"
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -309,7 +309,10 @@ export default function DashboardLayout({
       </motion.div>
 
       {/* Main content area - FIXED STRUCTURE */}
-      <div className="lg:pl-80 min-h-screen flex flex-col">
+      <div
+        key={pathname}                       // ✨ forces remount per page
+        className="lg:pl-80 flex flex-col flex-1"
+      >
         {/* Fixed Top bar */}
         <div className="sticky top-0 z-30 flex items-center justify-between h-16 px-6 bg-[#242422]/80 backdrop-blur-xl border-b border-[#404040]">
           <button
@@ -327,9 +330,8 @@ export default function DashboardLayout({
             </div>
           </div>
         </div>
-
-        {/* Page content - Full height with proper overflow */}
-        <main className="flex-1 bg-[#242422] min-h-screen">
+        {/* Page content */}
+        <main className="flex-1 bg-[#242422]">
           {children}
         </main>
       </div>
