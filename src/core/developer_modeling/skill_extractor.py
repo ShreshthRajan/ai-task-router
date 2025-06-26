@@ -32,6 +32,10 @@ class DeveloperProfile:
     confidence_scores: Dict[str, float]
     last_updated: datetime
 
+
+print(f"🔍 DEBUG: GITHUB_TOKEN from settings: '{settings.GITHUB_TOKEN}'")
+print(f"🔍 DEBUG: GITHUB_TOKEN length: {len(settings.GITHUB_TOKEN) if settings.GITHUB_TOKEN else 0}")
+
 class SkillExtractor:
     """Main orchestrator for developer skill extraction and modeling."""
     
@@ -173,20 +177,35 @@ class SkillExtractor:
         
         print(f"🔍 DEBUG: _extract_code_skills called with {len(commits)} commits")
         
-        # Filter recent commits
-        cutoff_date = datetime.utcnow() - timedelta(days=time_window_days)
+        # Filter recent commits - FIX THE DATETIME ISSUE
+        cutoff_date = datetime.utcnow().replace(tzinfo=None) - timedelta(days=time_window_days)
         print(f"🔍 DEBUG: Cutoff date: {cutoff_date}")
         
         recent_commits = []
         for commit in commits:
             timestamp_str = commit.get('timestamp', '2020-01-01')
             try:
-                # Handle different timestamp formats
-                if timestamp_str.endswith('Z'):
-                    timestamp_str = timestamp_str[:-1] + '+00:00'
-                commit_date = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-                if commit_date > cutoff_date:
-                    recent_commits.append(commit)
+                # Parse timestamp and make it timezone-naive for comparison
+                if 'T' in timestamp_str:
+                    # Remove timezone info to make it naive
+                    if timestamp_str.endswith('Z'):
+                        timestamp_str = timestamp_str[:-1]
+                    elif '+' in timestamp_str:
+                        timestamp_str = timestamp_str.split('+')[0]
+                    elif timestamp_str.endswith('+00:00'):
+                        timestamp_str = timestamp_str[:-6]
+                    
+                    commit_date = datetime.fromisoformat(timestamp_str)
+                    
+                    print(f"🔍 DEBUG: Commit date {commit_date} vs cutoff {cutoff_date}")
+                    if commit_date > cutoff_date:
+                        recent_commits.append(commit)
+                        print(f"🔍 DEBUG: ✅ Commit included: {commit.get('hash', 'unknown')}")
+                    else:
+                        print(f"🔍 DEBUG: ❌ Commit too old: {commit.get('hash', 'unknown')}")
+                else:
+                    print(f"🔍 DEBUG: Skipping commit with invalid timestamp format: {timestamp_str}")
+                    
             except Exception as e:
                 print(f"🔍 DEBUG: Error parsing timestamp '{timestamp_str}': {e}")
                 continue

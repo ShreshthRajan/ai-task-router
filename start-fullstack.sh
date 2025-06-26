@@ -145,7 +145,7 @@ cd ..
 # Start Backend Server
 print_info "Starting backend server on port 8000..."
 cd src
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload > /dev/null 2>&1 &
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 cd ..
 
@@ -164,7 +164,7 @@ fi
 # Start Frontend Server
 print_info "Starting frontend server on port 3000..."
 cd frontend
-npm run dev > /dev/null 2>&1 &
+npm run dev &
 FRONTEND_PID=$!
 cd ..
 

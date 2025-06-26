@@ -3,10 +3,19 @@ import os
 from pathlib import Path
 from typing import Dict, List
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+# Get absolute paths BEFORE class definition
+_BASE_DIR = Path(__file__).parent.parent.absolute()
+_DATA_DIR = _BASE_DIR / "data"
+_DB_PATH = _DATA_DIR / "taskrouter.db"
+
+# Load environment variables
+load_dotenv(_BASE_DIR / ".env")
 
 class Settings(BaseSettings):
-    # Database
-    DATABASE_URL: str = "sqlite:///../data/taskrouter.db"
+    # Database (using pre-computed absolute string paths)
+    DATABASE_URL: str = f"sqlite:///{str(_DB_PATH)}"
     REDIS_URL: str = "redis://localhost:6379"
     
     # API Keys
@@ -28,11 +37,11 @@ class Settings(BaseSettings):
     LEARNING_VELOCITY_WINDOW_DAYS: int = 180
     MIN_COMMITS_FOR_ANALYSIS: int = 10
     
-    # File Paths
-    BASE_DIR: Path = Path(__file__).parent.parent
-    DATA_DIR: Path = BASE_DIR / "data"
-    MODELS_DIR: Path = DATA_DIR / "models"
-    EMBEDDINGS_DIR: Path = DATA_DIR / "embeddings"
+    # File Paths (using pre-computed absolute paths)
+    BASE_DIR: Path = _BASE_DIR
+    DATA_DIR: Path = _DATA_DIR
+    MODELS_DIR: Path = _DATA_DIR / "models"
+    EMBEDDINGS_DIR: Path = _DATA_DIR / "embeddings"
     
     # Supported Programming Languages
     SUPPORTED_LANGUAGES: List[str] = [
@@ -70,10 +79,15 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
 
 settings = Settings()
 
-# Ensure data directories exist
-settings.DATA_DIR.mkdir(exist_ok=True)
-settings.MODELS_DIR.mkdir(exist_ok=True)
-settings.EMBEDDINGS_DIR.mkdir(exist_ok=True)
+# Ensure data directories exist (using absolute paths)
+_DATA_DIR.mkdir(exist_ok=True)
+(_DATA_DIR / "models").mkdir(exist_ok=True)
+(_DATA_DIR / "embeddings").mkdir(exist_ok=True)
+
+# Debug verification
+print(f"🔧 DEBUG: DATABASE_URL: {settings.DATABASE_URL}")
+print(f"🔧 DEBUG: Database file exists: {_DB_PATH.exists()}")
