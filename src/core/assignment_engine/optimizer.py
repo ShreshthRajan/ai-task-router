@@ -362,6 +362,9 @@ class AssignmentOptimizer:
              objective_weights.get('business_impact', 0.10) * business_impact
          )
          
+         # Add semantic code quality bonus
+         overall_score += 0.15 * dev_capacity.skill_vector[353]    # reward clean, idiomatic code
+         
          # Generate reasoning and risk factors
          reasoning, risk_factors = self._generate_assignment_reasoning(
              task_profile, dev_capacity, skill_match, complexity_fit, learning_potential

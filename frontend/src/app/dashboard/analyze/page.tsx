@@ -29,6 +29,7 @@ interface DeveloperProfile {
   skillLevel: number;
   learningVelocity: number;
   collaborationScore: number;
+  semanticQuality: number;
   topSkills: string[];
 }
 
@@ -39,7 +40,6 @@ export default function GitHubAnalyzer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
   
   const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
     { 
@@ -85,11 +85,7 @@ export default function GitHubAnalyzer() {
     }
   }, [searchParams]);
 
-  const updateStepStatus = (stepIndex: number, status: AnalysisStep['status'], progress: number = 100) => {
-    setAnalysisSteps(prev => prev.map((step, index) => 
-      index === stepIndex ? { ...step, status, progress } : step
-    ));
-  };
+
 
   const handleAnalyze = async () => {
     if (!repoUrl || !dataUtils.validateGitHubUrl(repoUrl)) {
@@ -100,7 +96,6 @@ export default function GitHubAnalyzer() {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
-    setCurrentStep(0);
   
     // Reset all steps
     setAnalysisSteps(prev => prev.map(step => ({ ...step, status: 'pending', progress: 0 })));
@@ -112,56 +107,11 @@ export default function GitHubAnalyzer() {
         days_back: 90
       };
   
-      // Step 1: Start real analysis
-      setCurrentStep(0);
-      updateStepStatus(0, 'running', 0);
-  
-      // Make the REAL API call immediately - no fake progress
-      const analysisPromise = githubApi.analyzeRepository(request);
-  
-      // Show real progress during actual analysis
-      const progressInterval = setInterval(() => {
-        setAnalysisSteps(prev => prev.map((step, index) => {
-          if (index === currentStep && step.status === 'running') {
-            const newProgress = Math.min((step.progress || 0) + Math.random() * 15, 90);
-            return { ...step, progress: newProgress };
-          }
-          return step;
-        }));
-      }, 500);
-  
-      // Simulate step progression based on typical analysis time
-      const stepProgressPromise = (async () => {
-        const steps = [
-          { delay: 1000, step: 0, name: 'Repository validation' },
-          { delay: 2000, step: 1, name: 'Commit analysis' },
-          { delay: 3000, step: 2, name: 'Skill extraction' },
-          { delay: 4000, step: 3, name: 'Complexity analysis' },
-          { delay: 5000, step: 4, name: 'Optimization' }
-        ];
-  
-        for (const { delay, step } of steps) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          if (step > 0) {
-            updateStepStatus(step - 1, 'completed', 100);
-          }
-          if (step < steps.length) {
-            setCurrentStep(step);
-            updateStepStatus(step, 'running', 0);
-          }
-        }
-      })();
-  
-      // Wait for actual analysis to complete
-      const response = await analysisPromise;
+      // Make the real API call
+      const response = await githubApi.analyzeRepository(request);
       
-      // Clear progress interval
-      clearInterval(progressInterval);
-  
       // Mark all steps as completed
-      for (let i = 0; i < analysisSteps.length; i++) {
-        updateStepStatus(i, 'completed', 100);
-      }
+      setAnalysisSteps(prev => prev.map(s => ({ ...s, status: 'completed', progress: 100 })));
   
       // Validate response has required data
       if (!response.data?.repository || !response.data?.team_metrics) {
@@ -174,10 +124,8 @@ export default function GitHubAnalyzer() {
       const errorMessage = err instanceof Error ? err.message : 'Repository analysis failed';
       setError(`Analysis failed: ${errorMessage}`);
       
-      // Mark current step as error
-      if (currentStep < analysisSteps.length) {
-        updateStepStatus(currentStep, 'error');
-      }
+      // Mark all steps as error
+      setAnalysisSteps(prev => prev.map(s => ({ ...s, status: 'error', progress: 0 })));
     } finally {
       setIsAnalyzing(false);
     }
@@ -194,6 +142,7 @@ export default function GitHubAnalyzer() {
       skillLevel: dev.expertise_confidence,
       learningVelocity: dev.learning_velocity,
       collaborationScore: dev.collaboration_score,
+      semanticQuality: dev.semantic_code_quality ?? 0,
       topSkills: Object.entries(dev.skill_vector.technical_skills || {})
         .sort(([,a], [,b]) => (b as number) - (a as number))
         .slice(0, 3)
@@ -572,7 +521,7 @@ export default function GitHubAnalyzer() {
                     </div>
 
                     <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div className="grid grid-cols-4 gap-3 text-sm">
                   <div className="text-center p-3 bg-[#404040] rounded-lg">
                     <div className="font-bold text-white">{developer.commits.toLocaleString()}</div>
                     <div className="text-[#a0a0a0]">Commits</div>
@@ -584,6 +533,12 @@ export default function GitHubAnalyzer() {
                         <div className="text-center p-3 bg-[#404040] rounded-lg">
                           <div className="font-bold text-emerald-400">{(developer.skillLevel * 100).toFixed(0)}%</div>
                           <div className="text-[#a0a0a0]">Expertise</div>
+                        </div>
+                        <div className="text-center p-3 bg-[#404040] rounded-lg">
+                          <div className="font-bold text-cyan-400">
+                            {(developer.semanticQuality*100).toFixed(0)}%
+                          </div>
+                          <div className="text-[#a0a0a0]">AI Quality</div>
                         </div>
                       </div>
 

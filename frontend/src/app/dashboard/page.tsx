@@ -65,20 +65,17 @@ export default function DashboardOverview() {
         setIsLoadingMetrics(true);
         setError(null);
 
-        const [healthResponse, analyticsResponse] = await Promise.all([
-          learningApi.getSystemHealth(),
-          learningApi.getAnalytics()
-        ]);
+        const healthResponse = await learningApi.getSystemHealth();
 
         if (!healthResponse.data?.system_metrics)               throw new Error('Backend system_metrics unavailable');
-        if (!analyticsResponse.data?.model_performance)         throw new Error('Backend model_performance unavailable');
-        if (!analyticsResponse.data?.productivity_metrics)      throw new Error('Backend productivity_metrics unavailable');
+        if (!healthResponse.data?.model_performance)            throw new Error('Backend model_performance unavailable');
+        if (!healthResponse.data?.productivity_metrics)         throw new Error('Backend productivity_metrics unavailable');
 
         setSystemMetrics({
-          assignment_accuracy:   analyticsResponse.data.model_performance.assignment_accuracy * 100,
+          assignment_accuracy:   healthResponse.data.model_performance.assignment_accuracy * 100,
           analysis_speed_ms:     healthResponse.data.system_metrics.avg_response_time_ms,
-          cost_savings_monthly:  analyticsResponse.data.productivity_metrics.cost_savings_monthly,
-          developer_satisfaction: analyticsResponse.data.productivity_metrics.developer_satisfaction_score * 100,
+          cost_savings_monthly:  healthResponse.data.productivity_metrics.cost_savings_monthly,
+          developer_satisfaction: healthResponse.data.productivity_metrics.developer_satisfaction_score * 100,
           active_analyses:       healthResponse.data.system_metrics.active_analyses,
           uptime_hours:          healthResponse.data.system_metrics.uptime_hours
         });
@@ -100,9 +97,9 @@ export default function DashboardOverview() {
   useEffect(() => {
     const loadTrendData = async () => {
       try {
-        const analyticsResponse = await learningApi.getAnalytics();
+        const healthResponse = await learningApi.getSystemHealth();
         const trends =
-          analyticsResponse.data.recent_optimizations?.slice(-7).map((opt: any, idx: number) => ({
+          healthResponse.data.recent_optimizations?.slice(-7).map((opt: any, idx: number) => ({
             date: `${7 - idx}d ago`,
             accuracy:     opt.performance_gain * 100,
             assignments:  opt.assignments_count || 0,

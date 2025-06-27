@@ -428,6 +428,7 @@ async def extract_team_from_repo_internal(
                             for skill, score in profile.programming_languages.items()
                         }
                     },
+                    "semantic_code_quality": round(profile.skill_vector[353], 3),
                     "primary_languages": profile.programming_languages,
                     "collaboration_score": profile.collaboration_score,
                     "learning_velocity": profile.learning_velocity,

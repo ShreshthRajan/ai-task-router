@@ -11,6 +11,8 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from sentence_transformers import SentenceTransformer
 
+from src.core.semantic.code_search import search as csn_search  
+
 from config import settings
 
 @dataclass
@@ -22,6 +24,7 @@ class CodeMetrics:
     function_count: int
     class_count: int
     import_complexity: float
+    csn_similarity: float                 # ← NEW
 
 class CodeAnalyzer:
     """Analyzes code commits for developer skill extraction."""
@@ -65,61 +68,60 @@ class CodeAnalyzer:
     
     def analyze_commit(self, files_changed: List[Dict], commit_info: Dict) -> CodeMetrics:
         """Analyze a single commit for code complexity and technical concepts."""
-        
         all_code = ""
         language_lines = defaultdict(int)
         total_lines = 0
-        function_count = 0
-        class_count = 0
+        function_count = class_count = 0
         technical_concepts = []
-        
+        nn_scores: list[float] = []                 # NEW
+
         for file_info in files_changed:
-            filename = file_info.get('filename', '')
-            patch = file_info.get('patch', '')
-            additions = file_info.get('additions', 0)
-            
-            # Detect language
+            filename = file_info.get("filename", "")
+            patch    = file_info.get("patch", "")
+            additions= file_info.get("additions", 0)
+
+            # ---------- language detection ----------
             language = self._detect_language(filename, patch)
             if language:
                 language_lines[language] += additions
                 total_lines += additions
-            
-            # Extract added code lines
+
+            # ---------- added lines ----------
             added_lines = self._extract_added_lines(patch)
+            if added_lines:
+                joined = "\n".join(added_lines)[:4096]    # keep it short
+                # semantic similarity against CodeSearchNet corpus
+                nn = csn_search(joined, k=3)
+                if nn:
+                    nn_scores.append(np.mean([s for s, _ in nn]))
+
             all_code += "\n".join(added_lines) + "\n"
-            
-            # Count functions and classes
+
+            # ---------- simple metrics ----------
             function_count += self._count_functions(added_lines, language)
-            class_count += self._count_classes(added_lines, language)
-            
-            # Extract technical concepts
-            concepts = self._extract_technical_concepts(added_lines)
-            technical_concepts.extend(concepts)
-        
-        # Calculate language distribution
-        language_distribution = {}
-        if total_lines > 0:
-            for lang, lines in language_lines.items():
-                language_distribution[lang] = lines / total_lines
-        
-        # Calculate complexity score
-        complexity_score = self._calculate_complexity(all_code, function_count, class_count)
-        
-        # Generate semantic embedding
+            class_count    += self._count_classes(added_lines, language)
+            technical_concepts.extend(self._extract_technical_concepts(added_lines))
+
+        language_distribution = {
+            lang: lines / total_lines for lang, lines in language_lines.items()
+        } if total_lines else {}
+
+        complexity_score   = self._calculate_complexity(all_code, function_count, class_count)
         semantic_embedding = self._generate_code_embedding(all_code)
-        
-        # Calculate import complexity
-        import_complexity = self._calculate_import_complexity(all_code)
-        
+        import_complexity  = self._calculate_import_complexity(all_code)
+        csn_similarity     = float(np.mean(nn_scores)) if nn_scores else 0.0   # NEW
+
         return CodeMetrics(
-            complexity_score=complexity_score,
-            language_distribution=language_distribution,
-            technical_concepts=list(set(technical_concepts)),
-            semantic_embedding=semantic_embedding,
-            function_count=function_count,
-            class_count=class_count,
-            import_complexity=import_complexity
+            complexity_score      = complexity_score,
+            language_distribution = language_distribution,
+            technical_concepts    = list(set(technical_concepts)),
+            semantic_embedding    = semantic_embedding,
+            function_count        = function_count,
+            class_count           = class_count,
+            import_complexity     = import_complexity,
+            csn_similarity        = csn_similarity,           # NEW
         )
+
     
     def _detect_language(self, filename: str, content: str) -> Optional[str]:
         """Detect programming language from filename and content."""

@@ -10,6 +10,7 @@ from models.database import create_tables, get_db
 from api import developers, assignments, tasks, learning
 from api.github_integration import router as github_router
 from core.developer_modeling.expertise_tracker import ExpertiseTracker
+from core.learning_system.system_analytics import SystemAnalytics
 from models.database import engine, Base
 
 from sqlalchemy import text
@@ -32,6 +33,7 @@ app.add_middleware(
 
 # Initialize expertise tracker
 expertise_tracker = ExpertiseTracker()
+system_analytics = SystemAnalytics()
 
 @app.on_event("startup")
 async def startup_event():
@@ -74,35 +76,29 @@ async def root():
 async def health_check(db: Session = Depends(get_db)):
     """Detailed health check with database connectivity."""
     try:
-        # Test database connection
-        from sqlalchemy import text
         db.execute(text("SELECT 1"))
-        
+        # fetch real system metrics from your analytics layer (or hard-wire for now)
+        system = await system_analytics.get_system_health_metrics(db)
+        # system should provide: uptime_hours, active_analyses, avg_response_time_ms
+        models = await system_analytics.get_model_status(db)
+        # models should contain .accuracy per model
+
         return {
-            "status": "healthy",
-            "database": "connected",
-            "components": {
-                "skill_extraction": "ready",
-                "task_analysis": "ready", 
-                "assignment_engine": "ready",
-                "learning_automata": "ready",
-                "feedback_processor": "ready",     # NEW
-                "model_updater": "ready",          # NEW
-                "system_analytics": "ready"       # NEW
-            },
-            "phase_4_features": {                  # NEW
-                "continuous_learning": "active",
-                "model_optimization": "active",
-                "performance_monitoring": "active",
-                "predictive_analytics": "active",
-                "ab_testing": "active"
-            }
+          "status": system.status,                     # "optimal"/"degraded"/"offline"
+          "system_metrics": {
+            "active_analyses": system.active_analyses,
+            "avg_response_time_ms": system.avg_response_time_ms,
+            "uptime_hours": system.uptime_hours
+          },
+          "ai_models": {
+            "code_analyzer": { "accuracy": models.code_analyzer.accuracy },
+            "task_predictor": { "accuracy": models.task_predictor.accuracy },
+            "assignment_optimizer": { "accuracy": models.assignment_optimizer.accuracy },
+            "learning_system": { "accuracy": models.learning_system.accuracy }
+          }
         }
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        raise HTTPException(500, detail=str(e))
 
 if __name__ == "__main__":
    uvicorn.run(

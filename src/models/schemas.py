@@ -28,6 +28,8 @@ class DeveloperProfile(DeveloperBase):
     collaboration_score: float = 0.0
     learning_velocity: float = 0.0
     confidence_scores: Dict[str, float] = {}
+    # average CodeSearchNet similarity we compute in CodeAnalyzer
+    semantic_code_quality: float = 0.0          # NEW ←───────
     created_at: datetime
     updated_at: datetime
     

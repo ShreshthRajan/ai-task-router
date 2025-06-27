@@ -1,3 +1,4 @@
+# src/data_ingestion/codesearchnet_ingest.py
 """
 Download *one* language slice of CodeSearchNet and extract only the
 <func-docstring, repo, path> triples we need for contrastive fine-tuning.
@@ -63,11 +64,28 @@ def download_language(lang: str) -> None:
         for rec in ds:
             total += 1
             if random.random() < 0.01:            # keep 1 %
+                # ── best-effort repo / path recovery (optional) ────────────
+                repo = rec.get("repo") or rec.get("repo_name")
+                path = rec.get("path")
+                if (not repo or not path) and rec.get("url"):
+                    parts = rec["url"].split("/")
+                    if len(parts) > 6:
+                        repo = repo or f"{parts[3]}/{parts[4]}"
+                        path = path or "/".join(parts[7:]).split("#")[0]
+
                 fp.write(json.dumps({
-                    "func_code": rec["func_code_string"],
-                    "func_doc":  rec["func_documentation_string"],
-                    "repo":      rec.get("repo_name"),
-                    "path":      rec.get("path"),
+                    "func_code": (
+                        rec.get("code")
+                        or rec.get("func_code")
+                        or rec.get("func_code_string")
+                    ),
+                    "func_doc":  (
+                        rec.get("docstring")
+                        or rec.get("func_docstring")
+                        or rec.get("func_documentation_string")
+                    ),
+                    "repo": repo or "unknown",
+                    "path": path or "unknown",
                 }) + "\n")
                 kept += 1
 

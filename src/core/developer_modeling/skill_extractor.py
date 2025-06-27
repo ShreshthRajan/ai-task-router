@@ -98,7 +98,7 @@ class SkillExtractor:
         
         # Extract code-based skills
         print(f"🔍 DEBUG: Extracting code skills...")
-        code_skills = self._extract_code_skills(
+        code_skills, code_analyses = self._extract_code_skills(
             developer_data.get('commits', []),
             time_window_days
         )
@@ -138,7 +138,7 @@ class SkillExtractor:
         # Generate unified skill vector
         print(f"🔍 DEBUG: Generating skill vector...")
         skill_vector = self._generate_skill_vector(
-            code_skills, domain_knowledge, collaboration_analysis
+            code_skills, domain_knowledge, collaboration_analysis, code_analyses
         )
         print(f"🔍 DEBUG: Skill vector shape: {skill_vector.shape}")
         print(f"🔍 DEBUG: Skill vector non-zero elements: {np.count_nonzero(skill_vector)}")
@@ -214,7 +214,7 @@ class SkillExtractor:
         print(f"🔍 DEBUG: Recent commits after filtering: {len(recent_commits)}")
         
         if not recent_commits:
-            return {"programming_languages": {}, "domain_expertise": {}}
+            return {"programming_languages": {}, "domain_expertise": {}}, []
         
         # Analyze each commit
         code_analyses = []
@@ -240,7 +240,7 @@ class SkillExtractor:
         skills = self.code_analyzer.extract_developer_skills(code_analyses, time_window_days)
         print(f"🔍 DEBUG: Final extracted skills: {skills}")
         
-        return skills
+        return skills, code_analyses
         
     def _analyze_collaboration_patterns(self, 
                                       pr_reviews: List[Dict],
@@ -582,7 +582,8 @@ class SkillExtractor:
     def _generate_skill_vector(self, 
                              code_skills: Dict,
                              domain_knowledge: Dict,
-                             collaboration_analysis: CollaborationAnalysis) -> np.ndarray:
+                             collaboration_analysis: CollaborationAnalysis,
+                             code_analyses: List = None) -> np.ndarray:
         """Generate unified multi-dimensional skill vector."""
         
         # Initialize skill vector
@@ -615,6 +616,12 @@ class SkillExtractor:
         skill_vector[quality_offset] = code_skills.get('complexity_preference', 0.0)
         skill_vector[quality_offset + 1] = code_skills.get('technical_breadth', 0.0)
         skill_vector[quality_offset + 2] = code_skills.get('code_quality_indicator', 0.0)
+
+        # 🔥 NEW: global semantic-quality signal (dimension 353)
+        #   Ranges 0-1  (> 0.6 means the code "looks like" SOTA examples)
+        skill_vector[quality_offset + 3] = np.mean([
+            m.csn_similarity for m in code_analyses or []
+        ]) if code_analyses else 0.0
         
         
         # Leave remaining dims at 0 – we will populate them when new signals arrive

@@ -46,6 +46,7 @@ async def create_developer(developer: DeveloperCreate, db: Session = Depends(get
             collaboration_score=profile.collaboration_score,
             learning_velocity=profile.learning_velocity,
             confidence_scores=profile.confidence_scores,
+            semantic_code_quality=profile.skill_vector[353],  # we reserved dim-353
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -74,6 +75,7 @@ async def list_developers(
             collaboration_score=dev.collaboration_score,
             learning_velocity=dev.learning_velocity,
             confidence_scores={},  # Could be enhanced to fetch from latest snapshot
+            semantic_code_quality=0.0,  # historic profile isn't available
             created_at=dev.created_at,
             updated_at=dev.updated_at
         )
@@ -108,6 +110,7 @@ async def get_developer(developer_id: int, db: Session = Depends(get_db)):
         collaboration_score=developer.collaboration_score,
         learning_velocity=developer.learning_velocity,
         confidence_scores=confidence_scores,
+        semantic_code_quality=0.0,  # historic profile isn't available
         created_at=developer.created_at,
         updated_at=developer.updated_at
     )
