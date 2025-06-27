@@ -48,38 +48,48 @@ async def submit_assignment_feedback(
 
 @router.get("/learning/system-health")
 async def get_system_health(db: Session = Depends(get_db)):
-    """Get comprehensive system health metrics."""
+    """
+    Get comprehensive system health metrics, reshaped for the front end.
+    """
     try:
+        # Fetch raw metrics from your analytics layer
         metrics = await system_analytics.get_system_health_metrics(db)
-        analytics = await system_analytics.get_learning_analytics_for_frontend(db)
+        performance = await system_analytics.get_model_performance_metrics(db)
+
         return {
-          "system_metrics": {
-            "active_analyses": metrics.active_analyses,
-            "avg_response_time_ms": metrics.avg_response_time_ms,
-            "uptime_hours": metrics.uptime_hours
-          },
-          "model_performance": {
-            "assignment_accuracy": analytics.model_performance.assignment_accuracy,
-            "prediction_confidence": analytics.model_performance.prediction_confidence,
-            "learning_rate": analytics.model_performance.learning_rate,
-            "improvement_trend": analytics.model_performance.improvement_trend
-          },
-          "productivity_metrics": {
-            "cost_savings_monthly": analytics.productivity_metrics.cost_savings_monthly,
-            "developer_satisfaction_score": analytics.productivity_metrics.developer_satisfaction_score,
-            "time_saved_hours": analytics.productivity_metrics.time_saved_hours,
-            "avg_task_completion_improvement": analytics.productivity_metrics.avg_task_completion_improvement
-          },
-          "recent_optimizations": analytics.recent_optimizations
+            # Overall system status
+            "status": metrics.status,  # e.g. "optimal", "degraded", "offline"
+
+            # Exactly the keys dashboard/layout.tsx reads
+            "system_metrics": {
+                "active_analyses": metrics.active_analyses,
+                "avg_response_time_ms": metrics.avg_response_time_ms,
+                "uptime_hours": metrics.uptime_hours,
+            },
+            "model_performance": {
+                "assignment_accuracy": performance.assignment_accuracy,
+                "prediction_confidence": performance.prediction_confidence,
+                "learning_rate": performance.learning_rate,
+                "improvement_trend": performance.improvement_trend,
+            },
+            "productivity_metrics": {
+                "cost_savings_monthly": performance.cost_savings_monthly,
+                "developer_satisfaction_score": performance.developer_satisfaction_score,
+                "time_saved_hours": performance.time_saved_hours,
+                "avg_task_completion_improvement": performance.avg_task_completion_improvement,
+            },
+            "recent_optimizations": performance.recent_optimizations,
         }
     except Exception as e:
-        raise HTTPException(500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
-# REPLACE the entire function with:
-@router.get("/learning/analytics")
+@router.get("/learning/analytics", response_model=LearningSystemAnalytics)
 async def get_learning_analytics(db: Session = Depends(get_db)):
     """Get comprehensive learning system analytics."""
     try:
+        # Return the Pydantic model directly so that
+        # fields like model_performance, productivity_metrics,
+        # recent_optimizations match the front-end expectations
         return await system_analytics.get_learning_analytics_for_frontend(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting learning analytics: {str(e)}")
