@@ -289,7 +289,7 @@ export default function DashboardOverview() {
       >
         <div>
           <h1 className="text-heading-1 mb-2">
-            Intelligence Command Center
+          Repository Intelligence
           </h1>
           <p className="text-body-large text-[#a0a0a0]">
             Real-time AI system monitoring and performance analytics

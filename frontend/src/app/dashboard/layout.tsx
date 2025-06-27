@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import clsx from 'clsx';      
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -9,7 +10,6 @@ import {
   Brain, 
   Home, 
   Github, 
-  BarChart3, 
   Menu, 
   X,
   Activity,
@@ -44,12 +44,6 @@ const navigation: NavigationItem[] = [
     badge: 'AI',
     description: 'Live GitHub intelligence extraction'
   },
-  { 
-    name: 'Analytics', 
-    href: '/dashboard/analytics', 
-    icon: BarChart3,
-    description: 'Performance trends and insights'
-  },
 ];
 
 interface SystemStatus {
@@ -66,6 +60,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    /* media query listener keeps state in sync when user resizes window */
+    const mql = window.matchMedia('(min-width:1024px)');
+    const handler = () => setIsDesktop(mql.matches);
+    handler();                       // initialise on first render
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
     status: 'optimal',
     activeModels: 4,
@@ -157,11 +161,21 @@ export default function DashboardLayout({
 
       {/* Fixed Sidebar */}
       <motion.div
+        /* 2️⃣  Animate only on mobile (< lg); lock at x = 0 on desktop */
+        animate={isDesktop ? { x: 0 } : { x: sidebarOpen ? 0 : -320 }}
         initial={false}
-        animate={{
-          x: sidebarOpen ? 0 : -320,
-        }}
-        className="fixed inset-y-0 left-0 z-50 w-80 bg-[#2a2a28] border-r border-[#404040] lg:translate-x-0"
+        transition={{ type: 'tween', duration: 0.28 }}
+
+        /* 3️⃣  Tailwind-powered fall-back transform so it still slides without JS during first paint */
+        className={clsx(
+          'fixed inset-y-0 left-0 z-50 w-80 bg-[#2a2a28] border-r border-[#404040]',
+          'transform transition-transform duration-300',
+          isDesktop              /* ≥ lg */
+            ? 'translate-x-0'
+            : sidebarOpen
+              ? 'translate-x-0'   /* mobile + drawer open */
+              : '-translate-x-full'/* mobile + drawer closed */
+        )}
       >
         <div className="flex flex-col h-full">
           {/* Header */}

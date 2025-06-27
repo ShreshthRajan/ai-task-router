@@ -68,7 +68,8 @@
 @layer components {
   /* Typography System - Claude-inspired */
   .text-heading-1 {
-    @apply text-4xl lg:text-5xl font-bold text-[#f4f4f4] leading-tight;
+    font-size: clamp(2.5rem, 4vw + 1rem, 3.75rem);
+    @apply font-extrabold leading-tight tracking-tight text-[#f4f4f4];
   }
   
   .text-heading-2 {
