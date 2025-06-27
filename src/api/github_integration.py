@@ -449,60 +449,82 @@ async def extract_team_from_repo_internal(
         return []
 
 async def extract_tasks_from_repo_internal(
-    owner: str, 
-    repo: str,
-    db: Optional[Session] = None
+    owner: str, repo: str, db: Optional[Session] = None
 ) -> List[Dict[str, Any]]:
-    """Internal function to extract tasks using real Phase 2 components."""
+    """
+    Pull live issues, run 5-D complexity, return list ready for the FE.
+    Handles label objects **and** label strings.
+    """
     try:
-        # Get real issues from GitHub
-        issues = await get_github_client().get_repository_issues(owner, repo, max_issues=20)
-        tasks_data = []
-        
+        issues = await get_github_client().get_repository_issues(
+            owner, repo, max_issues=20
+        )
+        tasks_data: List[Dict[str, Any]] = []
+
+        seen_numbers: set[int] = set()   # <- just above the for-loop
+
         for i, issue in enumerate(issues):
-            try:
-                # Use real Phase 2 complexity prediction
-                task_input = {
-                    'id': str(issue.get('number', i)),
-                    'title': issue.get('title', ''),
-                    'body': issue.get('body', ''),
-                    'labels': [label.get('name', '') for label in issue.get('labels', [])],
-                    'repository': f"{owner}/{repo}"
-                }
-                
-                complexity_result = await get_complexity_predictor().predict_task_complexity(task_input)
-                
-                # Convert to expected format
-                task_data = {
-                    "id": i + 1,
-                    "title": issue.get('title', ''),
-                    "description": issue.get('body', '')[:500] + "..." if len(issue.get('body', '')) > 500 else issue.get('body', ''),
-                    "github_issue_number": issue.get('number'),
-                    "labels": [label.get('name', '') for label in issue.get('labels', [])],
-                    "complexity_analysis": {
-                        "technical_complexity": complexity_result.technical_complexity,
-                        "domain_difficulty": complexity_result.domain_difficulty,
-                        "collaboration_requirements": complexity_result.collaboration_requirements,
-                        "learning_opportunities": complexity_result.learning_opportunities,
-                        "business_impact": complexity_result.business_impact,
-                        "estimated_hours": complexity_result.estimated_hours,
-                        "confidence_score": complexity_result.confidence_score,
-                        "complexity_factors": complexity_result.complexity_factors,
-                        "required_skills": complexity_result.required_skills,
-                        "risk_factors": complexity_result.risk_factors
-                    }
-                }
-                tasks_data.append(task_data)
-                
-            except Exception as e:
-                print(f"Error analyzing task {issue.get('number', i)}: {e}")
+            # ─── skip non-dict items (rare secondary-rate-limit messages) ───
+            num = issue.get("number")
+            if num in seen_numbers:      # <- NEW
+                continue                 # skip duplicates
+            seen_numbers.add(num)
+            
+            if not isinstance(issue, dict):
                 continue
-        
+
+            # safe normalisation of labels -------------------------------
+            labels_raw = issue.get("labels", [])
+            normalized_labels = [
+                lab["name"] if isinstance(lab, dict) else str(lab)
+                for lab in labels_raw
+            ]
+
+            task_input = {
+                "id": str(issue.get("number", i)),
+                "title": issue.get("title", ""),
+                "body": issue.get("body", ""),
+                "labels": normalized_labels,
+                "repository": f"{owner}/{repo}",
+            }
+
+            try:
+                complexity = await get_complexity_predictor().predict_task_complexity(
+                    task_input
+                )
+            except Exception as exc:
+                print(f"⚠️  Complexity analysis failed for issue {task_input['id']}: {exc}")
+                continue
+
+            tasks_data.append(
+                {
+                    "id": i + 1,
+                    "title": task_input["title"],
+                    "description": (task_input["body"][:500] + "…")
+                    if len(task_input["body"]) > 500
+                    else task_input["body"],
+                    "github_issue_number": issue.get("number"),
+                    "labels": normalized_labels,
+                    "complexity_analysis": {
+                        "technical_complexity": complexity.technical_complexity,
+                        "domain_difficulty": complexity.domain_difficulty,
+                        "collaboration_requirements": complexity.collaboration_requirements,
+                        "learning_opportunities": complexity.learning_opportunities,
+                        "business_impact": complexity.business_impact,
+                        "estimated_hours": complexity.estimated_hours,
+                        "confidence_score": complexity.confidence_score,
+                        "complexity_factors": complexity.complexity_factors,
+                        "required_skills": complexity.required_skills,
+                        "risk_factors": complexity.risk_factors,
+                    },
+                }
+            )
+
         return tasks_data
-        
     except Exception as e:
         print(f"Error extracting tasks: {e}")
         return []
+
 
 # ===== UTILITY FUNCTIONS =====
 def parse_github_url(url: str) -> Dict[str, str]:

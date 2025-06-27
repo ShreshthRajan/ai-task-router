@@ -59,6 +59,39 @@ data/models/*
 data/embeddings/*
 !data/embeddings/.gitkeep
 
+# ───────── Phase-1 / 1.5 / 2 additions ─────────
+# Raw corpora pulled from CodeSearchNet & GH Archive
+data/raw/**
+!data/raw/.gitkeep
+
+# FAISS & sentence-transformer cache files (Step 2)
+data/faiss_indexes/**
+!data/faiss_indexes/.gitkeep
+.cache/torch/sentence_transformers/*
+
+# Any big temporary downloads (tar.gz, jsonl, etc.)
+*.tar.gz
+*.jsonl
+*.jsonl.gz
+
+# HuggingFace dataset cache (to avoid committing GBs)
+~/.cache/huggingface/**
+
+# Front-end build artifacts (if you later run "npm build")
+frontend/.next/
+frontend/dist/
+
+# Local notebooks and checkpoints you may use for EDA
+*.ipynb
+.ipynb_checkpoints/
+
+# FAISS native indexes often have ".index", ".faiss", or ".idx"
+*.faiss
+*.index
+*.idx
+
+# ───────────────────────────────────────────────
+
 # Database
 *.db
 *.sqlite

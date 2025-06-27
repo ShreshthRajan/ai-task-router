@@ -214,8 +214,7 @@ class SkillExtractor:
         print(f"🔍 DEBUG: Recent commits after filtering: {len(recent_commits)}")
         
         if not recent_commits:
-            print(f"🔍 DEBUG: No recent commits found, returning empty skills")
-            return {}
+            return {"programming_languages": {}, "domain_expertise": {}}
         
         # Analyze each commit
         code_analyses = []
@@ -566,7 +565,7 @@ class SkillExtractor:
             skill_growth.append(len(new_skills))
         
         # Return average skill acquisition rate
-        return np.mean(skill_growth) / 10  # Normalize
+        return min(np.mean(skill_growth) / 10, 1.0)
     
     def _extract_technical_concepts_from_text(self, text: str) -> set:
         """Extract technical concepts from text content."""
@@ -617,11 +616,9 @@ class SkillExtractor:
         skill_vector[quality_offset + 1] = code_skills.get('technical_breadth', 0.0)
         skill_vector[quality_offset + 2] = code_skills.get('code_quality_indicator', 0.0)
         
-        # Fill remaining dimensions with noise to prevent overfitting
-        remaining_dims = settings.SKILL_VECTOR_DIM - 400
-        if remaining_dims > 0:
-            skill_vector[400:] = np.random.normal(0, 0.01, remaining_dims)
         
+        # Leave remaining dims at 0 – we will populate them when new signals arrive
+
         return skill_vector
     
     def _calculate_confidence_scores(self, 

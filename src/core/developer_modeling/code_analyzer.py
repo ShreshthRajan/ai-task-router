@@ -298,15 +298,23 @@ class CodeAnalyzer:
                 'code_quality_indicator': 0.0
             }
         
-        # Aggregate language skills
+        # Aggregate language skills and track total lines
         language_skills = defaultdict(list)
+        language_total_lines = defaultdict(float)
         all_concepts = []
         complexity_scores = []
+        total_lines_all_commits = 0
         
         for analysis in code_analyses:
+            # Calculate total lines for this commit
+            commit_total_lines = sum(analysis.language_distribution.values()) if analysis.language_distribution else 0
+            total_lines_all_commits += commit_total_lines
+            
             # Language proficiency
             for lang, ratio in analysis.language_distribution.items():
                 language_skills[lang].append(ratio)
+                # Track actual lines edited for this language in this commit
+                language_total_lines[lang] += ratio * commit_total_lines
             
             # Technical concepts
             all_concepts.extend(analysis.technical_concepts)
@@ -314,11 +322,13 @@ class CodeAnalyzer:
             # Complexity handling
             complexity_scores.append(analysis.complexity_score)
         
-        # Calculate language proficiency scores
+        # Calculate language proficiency scores with line-based scaling
         programming_languages = {}
         for lang, ratios in language_skills.items():
+            loc = language_total_lines[lang]  # total added lines for that lang
+            scale = min(loc / 500.0, 1.0)  # 500 added lines → full score
             programming_languages[lang] = {
-                'proficiency': np.mean(ratios),
+                'proficiency': np.mean(ratios) * scale,
                 'consistency': 1.0 - np.std(ratios) if len(ratios) > 1 else 1.0,
                 'recent_usage': sum(ratios[-10:]) / min(len(ratios), 10)  # Recent activity
             }

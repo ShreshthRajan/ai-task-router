@@ -163,50 +163,65 @@ class ComplexityPredictor:
         return features
     
     def _determine_issue_type(self, task_data: Dict) -> str:
-        """Determine the type of issue/task."""
-        title = task_data.get('title', '').lower()
-        labels = [label.get('name', '').lower() for label in task_data.get('labels', [])]
-        
-        # Check labels first
-        if any(label in ['bug', 'defect', 'error'] for label in labels):
-            return 'bug'
-        elif any(label in ['feature', 'enhancement', 'new'] for label in labels):
-            return 'feature'
-        elif any(label in ['refactor', 'cleanup', 'maintenance'] for label in labels):
-            return 'refactor'
-        elif any(label in ['documentation', 'docs'] for label in labels):
-            return 'documentation'
-        
-        # Check title patterns
-        if any(word in title for word in ['fix', 'bug', 'error', 'broken']):
-            return 'bug'
-        elif any(word in title for word in ['add', 'implement', 'create', 'new']):
-            return 'feature'
-        elif any(word in title for word in ['refactor', 'cleanup', 'improve']):
-            return 'refactor'
-        elif any(word in title for word in ['document', 'readme', 'guide']):
-            return 'documentation'
-        
-        return 'unknown'
+        """
+        Decide bug / feature / refactor / docs / unknown.
+        Accepts labels list of dicts **or** strings.
+        """
+        title = task_data.get("title", "").lower()
+        labels_raw = task_data.get("labels", [])
+        labels = [
+            (lab["name"] if isinstance(lab, dict) else str(lab)).lower()
+            for lab in labels_raw
+        ]
+
+        if any(lbl in {"bug", "defect", "error"} for lbl in labels):
+            return "bug"
+        if any(lbl in {"feature", "enhancement", "new"} for lbl in labels):
+            return "feature"
+        if any(lbl in {"refactor", "cleanup", "maintenance"} for lbl in labels):
+            return "refactor"
+        if any(lbl in {"documentation", "docs"} for lbl in labels):
+            return "documentation"
+
+        # fall back to heuristics on the title
+        if any(w in title for w in ("fix", "bug", "error", "broken")):
+            return "bug"
+        if any(w in title for w in ("add", "implement", "create", "new")):
+            return "feature"
+        if any(w in title for w in ("refactor", "cleanup", "improve")):
+            return "refactor"
+        if any(w in title for w in ("document", "readme", "guide")):
+            return "documentation"
+
+        return "unknown"
+
+
     
     def _extract_urgency_indicators(self, task_data: Dict) -> List[str]:
-        """Extract urgency indicators from task data."""
-        indicators = []
-        text = f"{task_data.get('title', '')} {task_data.get('body', '')}".lower()
-        labels = [label.get('name', '').lower() for label in task_data.get('labels', [])]
-        
+        """
+        Detect critical / high / production / security urgency.
+        Works with either label dicts or strings.
+        """
+        text = f"{task_data.get('title','')} {task_data.get('body','')}".lower()
+        labels_raw = task_data.get("labels", [])
+        labels = [
+            (lab["name"] if isinstance(lab, dict) else str(lab)).lower()
+            for lab in labels_raw
+        ]
+
         urgency_patterns = {
-            'critical': ['critical', 'urgent', 'emergency', 'asap', 'immediately'],
-            'high': ['high priority', 'important', 'blocker', 'blocking'],
-            'production': ['production', 'prod', 'live', 'customer impact'],
-            'security': ['security', 'vulnerability', 'exploit', 'breach']
+            "critical": {"critical", "urgent", "emergency", "asap", "immediately"},
+            "high": {"high priority", "important", "blocker", "blocking"},
+            "production": {"production", "prod", "live", "customer impact"},
+            "security": {"security", "vulnerability", "exploit", "breach"},
         }
-        
-        for category, patterns in urgency_patterns.items():
-            if any(pattern in text for pattern in patterns) or any(pattern in labels for pattern in patterns):
-                indicators.append(category)
-        
-        return indicators
+
+        hits: List[str] = []
+        for tag, words in urgency_patterns.items():
+            if any(w in text for w in words) or any(w in labels for w in words):
+                hits.append(tag)
+        return hits
+
     
     def _extract_technologies(self, text: str) -> List[str]:
         """Extract mentioned technologies and frameworks."""
@@ -526,7 +541,7 @@ class ComplexityPredictor:
     
     def _calculate_prediction_confidence(self, features: Dict) -> float:
         """Calculate confidence in the complexity prediction."""
-        confidence = 0.7  # Base confidence
+        confidence = 0.5  # Base confidence
         
         # More information increases confidence
         if features['description'] and len(features['description']) > 100:
@@ -546,7 +561,7 @@ class ComplexityPredictor:
         if features.get('repo_complexity') is not None:
             confidence += 0.05
         
-        return min(confidence, 1.0)
+        return min(min(confidence, 1.0), 3)
     
     def _extract_required_skills(self, features: Dict) -> Dict[str, float]:
         """Extract required skills and their importance levels."""
@@ -630,16 +645,16 @@ class ComplexityPredictor:
                 # Return default complexity on error
                 results.append(TaskComplexity(
                     task_id=task.get('id', 'unknown'),
-                    technical_complexity=0.5,
-                    domain_difficulty=0.5,
-                    collaboration_requirements=0.5,
-                    learning_opportunities=0.5,
-                    business_impact=0.5,
-                    estimated_hours=8.0,
-                    confidence_score=0.3,
+                    technical_complexity=None,
+                    domain_difficulty=None,
+                    collaboration_requirements=None,
+                    learning_opportunities=None,
+                    business_impact=None,
+                    estimated_hours=None,
+                    confidence_score=0.0,
                     complexity_factors={},
                     required_skills={},
-                    risk_factors=["Error in complexity analysis"]
+                    risk_factors=["analysis_error"]
                 ))
         
         return results

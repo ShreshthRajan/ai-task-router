@@ -4,28 +4,72 @@ import asyncio
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import json
+from datetime import datetime, timezone   
+
+
+import asyncio                       # ← already there
 
 from config import settings
+
+_GH_SEMAPHORE = asyncio.Semaphore(settings.MAX_API_CONCURRENCY or 8)  # NEW
+
+
 
 class GitHubClient:
     """Client for fetching developer data from GitHub API."""
     
     def __init__(self):
+        # ───────────────────────────────────────────────────────────
+        # Base URL and personal-access-token (PAT) selection
+        # ───────────────────────────────────────────────────────────
         self.base_url = "https://api.github.com"
-        self.headers = {
+
+        # Round-robin pick from the PAT pool (or fallback to single token)
+        pat: str = settings.pick_github_token()          # ← NEW
+        masked_pat = f"…{pat[-4:]}" if pat else "None"
+        print(f"🔍 DEBUG: GitHubClient picked PAT idx {settings._token_idx} — {masked_pat}")
+
+        # ───────────────────────────────────────────────────────────
+        # Standard request headers
+        # ───────────────────────────────────────────────────────────
+        self.headers: Dict[str, str] = {
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "AI-Task-Router/1.0"
         }
-        
-        if settings.GITHUB_TOKEN:
-            self.headers["Authorization"] = f"token {settings.GITHUB_TOKEN}"
+        if pat:                                   # add auth header only if PAT present
+            self.headers["Authorization"] = f"token {pat}"
+
+        # ───────────────────────────────────────────────────────────
+        # Concurrency semaphore shared across all GitHub requests
+        # ───────────────────────────────────────────────────────────
+        self._sem = asyncio.Semaphore(settings.MAX_API_CONCURRENCY)
+
     
+    def _headers(self) -> Dict[str, str]:
+        """
+        Rotate through PAT-tokens each request (round-robin).
+        Falls back to settings.GITHUB_TOKEN when the pool is empty.
+        """
+        token = settings.pick_github_token()
+        h = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "AI-Task-Router/1.0",
+        }
+        if token:
+            h["Authorization"] = f"token {token}"
+        return h
+
+    async def _throttle(self, mult: float = 1.0) -> None:
+        """Polite sleep helper so we stay well under secondary rate-limits."""
+        await asyncio.sleep(0.1 * mult)
+
+
     async def get_developer_data(self, username: str, days_back: int = 180) -> Dict:
         """Fetch comprehensive developer data from GitHub."""
         
         print(f"🔍 DEBUG: Fetching developer data for {username}")
         
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        async with _GH_SEMAPHORE, aiohttp.ClientSession(headers=self._headers()) as session:
             # Get basic user info
             user_info = await self._get_user_info(session, username)
             print(f"🔍 DEBUG: User info for {username}: {user_info}")
@@ -37,6 +81,11 @@ class GitHubClient:
             # Get commits across repositories
             commits = await self._get_user_commits(session, username, repos, days_back)
             print(f"🔍 DEBUG: Commits for {username}: {len(commits)} found")
+            
+            # after we collect commits
+            if not commits and days_back < 180:
+                print(f"👀  {username}: no commits in last {days_back}d, widening window to 180d")
+                commits = await self._get_user_commits(session, username, repos, 180)
             
             # Get pull requests and reviews
             pr_data = await self._get_pull_request_data(session, username, repos, days_back)
@@ -132,7 +181,7 @@ class GitHubClient:
                 all_commits.extend(repo_commits)
                 
                 # Rate limiting
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(1.0)
                 
             except Exception as e:
                 print(f"Error fetching commits for {repo['name']}: {e}")
@@ -244,40 +293,48 @@ class GitHubClient:
             "reviews": reviews,
             "descriptions": descriptions
         }
-    
-    async def _get_repo_pull_requests(self, session: aiohttp.ClientSession,
-                                    owner: str, repo: str, since_date: datetime) -> List[Dict]:
-        """Get pull requests from repository."""
-        
+   
+    async def _get_repo_pull_requests(
+        self, session: aiohttp.ClientSession,
+        owner: str, repo: str, since_date: datetime
+    ) -> List[Dict]:
+        """
+        Return PRs updated ≥ since_date, handling timezone-aware strings safely.
+        """
+        # Normalise since_date → UTC & offset-aware
+        if since_date.tzinfo is None:
+            since_date = since_date.replace(tzinfo=timezone.utc)
+
+        url = f"{self.base_url}/repos/{owner}/{repo}/pulls"
+        params = {
+            "state": "all",
+            "sort": "updated",
+            "direction": "desc",
+            "per_page": 50,
+        }
+
         try:
-            url = f"{self.base_url}/repos/{owner}/{repo}/pulls"
-            params = {
-                "state": "all",
-                "sort": "updated",
-                "direction": "desc",
-                "per_page": 50
-            }
-            
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    prs = await response.json()
-                    
-                    # Filter by date
-                    recent_prs = []
-                    for pr in prs:
-                        updated_at = datetime.fromisoformat(pr["updated_at"].replace("Z", "+00:00"))
-                        if updated_at >= since_date:
-                            recent_prs.append(pr)
-                        else:
-                            break  # PRs are sorted by updated date
-                    
-                    return recent_prs
-                else:
+            async with session.get(url, params=params) as resp:
+                if resp.status != 200:
                     return []
-                    
-        except Exception as e:
-            print(f"Error fetching pull requests: {e}")
+
+                prs = await resp.json()
+                recent_prs: List[Dict] = []
+                for pr in prs:
+                    # GitHub returns e.g. "2025-06-26T12:34:56Z"
+                    updated_at = datetime.fromisoformat(
+                        pr["updated_at"].replace("Z", "+00:00")
+                    )
+                    if updated_at >= since_date:
+                        recent_prs.append(pr)
+                    else:
+                        break         # list is already sorted desc
+
+                return recent_prs
+        except Exception as exc:
+            print(f"Error fetching pull requests for {owner}/{repo}: {exc}")
             return []
+
     
     async def _get_pr_reviews(self, session: aiohttp.ClientSession,
                             owner: str, repo: str, pr_number: int, username: str) -> List[Dict]:
@@ -335,7 +392,7 @@ class GitHubClient:
                     )
                     all_comments.extend(comments)
                     
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.5)
                 
             except Exception as e:
                 print(f"Error fetching issue comments for {repo['name']}: {e}")
@@ -404,7 +461,7 @@ class GitHubClient:
                               max_issues: int = 50) -> List[Dict]:
         """Fetch issues from a GitHub repository."""
         
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        async with _GH_SEMAPHORE, aiohttp.ClientSession(headers=self._headers()) as session:
             issues = []
             page = 1
             
@@ -447,7 +504,7 @@ class GitHubClient:
     async def get_issue_details(self, owner: str, repo: str, issue_number: int) -> Optional[Dict]:
         """Get detailed information about a specific issue."""
         
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        async with _GH_SEMAPHORE, aiohttp.ClientSession(headers=self._headers()) as session:
             try:
                 url = f"{self.base_url}/repos/{owner}/{repo}/issues/{issue_number}"
                 
@@ -490,7 +547,7 @@ class GitHubClient:
     async def search_repositories(self, query: str, max_repos: int = 10) -> List[Dict]:
         """Search for repositories using GitHub search API."""
         
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        async with _GH_SEMAPHORE, aiohttp.ClientSession(headers=self._headers()) as session:
             try:
                 params = {
                     "q": query,
@@ -520,7 +577,7 @@ class GitHubClient:
         print(f"🔍 DEBUG: GitHub token configured: {bool(settings.GITHUB_TOKEN)}")
         print(f"🔍 DEBUG: Headers: {self.headers}")
         
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        async with _GH_SEMAPHORE, aiohttp.ClientSession(headers=self._headers()) as session:
             try:
                 url = f"{self.base_url}/repos/{owner}/{repo}/contributors"
                 params = {
