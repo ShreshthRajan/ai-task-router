@@ -1,6 +1,7 @@
 # src/core/developer_modeling/code_analyzer.py
 import ast
 import re
+
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +12,7 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from sentence_transformers import SentenceTransformer
 
-from src.core.semantic.code_search import search as csn_search  
+from core.semantic.code_search import search as csn_search  
 
 from config import settings
 

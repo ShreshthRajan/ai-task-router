@@ -1,6 +1,7 @@
 # src/main.py
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import uvicorn
 
@@ -77,26 +78,8 @@ async def health_check(db: Session = Depends(get_db)):
     """Detailed health check with database connectivity."""
     try:
         db.execute(text("SELECT 1"))
-        # fetch real system metrics from your analytics layer (or hard-wire for now)
-        system = await system_analytics.get_system_health_metrics(db)
-        # system should provide: uptime_hours, active_analyses, avg_response_time_ms
-        models = await system_analytics.get_model_status(db)
-        # models should contain .accuracy per model
-
-        return {
-          "status": system.status,                     # "optimal"/"degraded"/"offline"
-          "system_metrics": {
-            "active_analyses": system.active_analyses,
-            "avg_response_time_ms": system.avg_response_time_ms,
-            "uptime_hours": system.uptime_hours
-          },
-          "ai_models": {
-            "code_analyzer": { "accuracy": models.code_analyzer.accuracy },
-            "task_predictor": { "accuracy": models.task_predictor.accuracy },
-            "assignment_optimizer": { "accuracy": models.assignment_optimizer.accuracy },
-            "learning_system": { "accuracy": models.learning_system.accuracy }
-          }
-        }
+        metrics = await system_analytics.get_system_health_metrics(db)
+        return JSONResponse(metrics.model_dump())          # one-liner
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 

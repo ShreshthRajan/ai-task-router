@@ -641,7 +641,7 @@ class SkillImportanceAnalysis(BaseModel):
     success_rate_without_skill: float = Field(..., ge=0.0, le=1.0)
     sample_size: int
 
-class LearningSystemAnalytics(BaseModel):
+class LearningSystemAnalyticsDetailed(BaseModel):
     """Comprehensive learning system analytics."""
     total_outcomes_processed: int
     active_experiments: int

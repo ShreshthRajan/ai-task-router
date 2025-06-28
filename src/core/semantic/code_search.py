@@ -9,9 +9,9 @@ Light-weight FAISS wrapper for “mini-CodeSearchNet”.
 from __future__ import annotations
 import json, pathlib
 import numpy as np
+from config import settings
 import faiss                             # pip install faiss-cpu
 from sentence_transformers import SentenceTransformer
-from src.config import settings
 
 INDEX_F = settings.EMBEDDINGS_DIR / "csn_mini.index"
 META_F  = settings.EMBEDDINGS_DIR / "csn_mini.meta.jsonl"
